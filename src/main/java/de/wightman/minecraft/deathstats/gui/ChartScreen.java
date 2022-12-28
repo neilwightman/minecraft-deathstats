@@ -5,9 +5,11 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.network.chat.TextComponent;
+
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
@@ -20,6 +22,8 @@ import org.jfree.data.time.Hour;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -34,16 +38,24 @@ import static com.mojang.blaze3d.platform.NativeImage.Format.RGBA;
 
 public class ChartScreen extends Screen {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChartScreen.class);
+
     private static final int MARGIN = 20;
 
     private final ResourceLocation chartLocation;
     private final ResourceLocation borderLocation;
+    private Button done;
     private DynamicTexture texture;
     private java.awt.Font minecraftFont = null;
     private java.awt.Font minecraftSmallFont = null;
 
+    private static final int BUTTON_HEIGHT = 20;
+    private static final int BUTTONS_INTERVAL = 4;
+    private static final int BOTTOM_BUTTON_WIDTH = 150;
+    private static final int BOTTOM_BUTTON_HEIGHT_OFFSET = 26;
+
     public ChartScreen() {
-        super(new TextComponent("Death Stats"));
+        super(new TranslatableComponent("deathstats.name"));
         this.chartLocation = new ResourceLocation("deathstats", "textures/dynamic/chart");
         this.borderLocation = new ResourceLocation("deathstats","textures/gui/borders.png");
         try {
@@ -56,12 +68,25 @@ public class ChartScreen extends Screen {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(poseStack);
+    protected void init() {
+        super.init();
+        done = new Button(
+                (this.width + BUTTONS_INTERVAL) / 2,
+                this.height - BOTTOM_BUTTON_HEIGHT_OFFSET,
+                BOTTOM_BUTTON_WIDTH, BUTTON_HEIGHT,
+                new TranslatableComponent("gui.done"),
+                button -> this.onClose());
+
+        this.addWidget(done);
 
         if (texture == null) {
             updateChartTexture(this.width, this.height);
         }
+    }
+
+    @Override
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(poseStack);
 
         Minecraft.getInstance().getTextureManager().bindForSetup(borderLocation);
 
@@ -94,7 +119,6 @@ public class ChartScreen extends Screen {
         // Bottom right
         GuiComponent.blit(poseStack, width - 8, height - 8, 16.0F, 16.0f, 8, 8, 256, 256);
 
-
         RenderSystem.disableBlend();
         poseStack.popPose();
 
@@ -105,17 +129,7 @@ public class ChartScreen extends Screen {
             RenderSystem.setShaderTexture(0, chartLocation);
             RenderSystem.enableBlend();
             poseStack.scale(1.0f, 1.0f, 1.0f);
-            // GuiComponent.blit args
-            //            int xPos,		    // x position relative to the screen image below it (not the entire screen).
-            //            int yPos,		    // y position relative to the screen image below it (not the entire screen).
-            //            int blitOffset,	// z position (blitOffSet)
-            //            float textureX,	// x position on the texture image to draw from
-            //            float textureY,	// y position on the texture image to draw from
-            //            int imgSizeX,		// x image size to display (like crop in PS)
-            //            int imgSizeY,		// y image size to display (like crop in PS)
-            //            int scaleY,		// y image size (will scale image to fit)
-            //            int scaleX,		// x image size (will scale image to fit)
-            //GuiComponent.blit(poseStack, 0, 0, 0.0F, 0.0f, this.width, this.height, this.width, this.height);
+
             GuiComponent.blit(poseStack, 8, 8, 0.0F, 0.0f, this.width - 16, this.height- 16, this.width- 16, this.height- 16);
             RenderSystem.disableBlend();
             poseStack.popPose();
@@ -124,31 +138,40 @@ public class ChartScreen extends Screen {
         drawCenteredString(poseStack, this.font, this.title.getString(),
                 this.width / 2, 12, 0xFFFFFF);
 
+        done.render(poseStack, mouseX, mouseY, partialTick);
+
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
 
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        System.out.println("Clicked :" + mouseX + " " + mouseY + " " + button);
+        LOGGER.debug("mouseClicked {}x{}", mouseX, mouseY);
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double p_94688_) {
-        System.out.println("Scrolled :" + mouseX + " " + mouseY + " " + p_94688_);
+        LOGGER.debug("mouseScrolled {}x{}", mouseX, mouseY);
         return super.mouseScrolled(mouseX, mouseX, p_94688_);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double p_94702_, double p_94703_) {
-        System.out.println("Dragged :" + mouseX + " " + mouseY + " " + button);
+        LOGGER.debug("mouseDragged {}x{}", mouseX, mouseY);
         return super.mouseDragged(mouseX, mouseY, button, p_94702_, p_94703_);
     }
 
     @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        LOGGER.debug("mouseReleased {}x{}", mouseX, mouseY);
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
     public void resize(Minecraft minecraft, int width, int height) {
-        System.out.println("Resize " + width + "x" + height);
+        // TODO don't generate on Window resize events.
+
         // update image
         updateChartTexture(width, height);
 
@@ -167,7 +190,7 @@ public class ChartScreen extends Screen {
 
 
     private void updateChartTexture(int width, int height) {
-        System.out.println("updateChartTexture " + width + "x" + height);
+        LOGGER.debug("updateChartTexture {}x{}", width, height);
         JFreeChart chart = createChart(createDataset());
         double scale = this.minecraft.getWindow().getGuiScale();
         BufferedImage image = chart.createBufferedImage((int) (width * scale) - 16, (int) (height * scale) - 16);
@@ -176,9 +199,10 @@ public class ChartScreen extends Screen {
             NativeImage nativeImage = NativeImage.read(RGBA, buffer);
 
             texture = new DynamicTexture(nativeImage);
+            // Register frees the old texture
             this.minecraft.getTextureManager().register(chartLocation, texture);
         } catch (IOException ioe) {
-            ioe.printStackTrace();
+            LOGGER.error("Failed to generate chart.", ioe);
         }
     }
 
@@ -187,14 +211,13 @@ public class ChartScreen extends Screen {
         try {
             // TODO can we write straight to the bytebuffer?
             boolean write = ImageIO.write(bi, "PNG", out);
-            System.out.println("write = " + write);
             byte[] data = out.toByteArray();
             ByteBuffer direct = ByteBuffer.allocateDirect(data.length);
             direct.put(data, 0, data.length);
             direct.rewind();
             return direct;
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        } catch (IOException ioe) {
+            LOGGER.error("Failed to convert chart.", ioe);
         }
         return null;
     }
@@ -237,7 +260,6 @@ public class ChartScreen extends Screen {
         DateAxis timeAxis = (DateAxis) plot.getDomainAxis();
         timeAxis.setDateFormatOverride(new SimpleDateFormat("HH"));
         timeAxis.setTickUnit(new DateTickUnit(DateTickUnitType.HOUR, 1));
-        System.out.println("Height in update " + this.height);
         timeAxis.setLabelFont( this.height < 640 ? minecraftSmallFont : minecraftFont);
         timeAxis.setTickLabelFont(minecraftSmallFont);
         timeAxis.setLabelPaint(Color.black);
@@ -246,7 +268,6 @@ public class ChartScreen extends Screen {
         DecimalFormat decimalFormatter = new DecimalFormat("0");
         deathAxis.setNumberFormatOverride(decimalFormatter);
         deathAxis.setTickUnit(new NumberTickUnit(1.0));
-        System.out.println("Width in update " + this.width);
         deathAxis.setLabelFont( this.width < 640 ? minecraftSmallFont : minecraftFont);
         deathAxis.setTickLabelFont(minecraftSmallFont);
         deathAxis.setLabelPaint(Color.black);

@@ -3,6 +3,7 @@ package de.wightman.minecraft.deathstats;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * New config UI coming so I removed the current custom incomplete UI.
@@ -10,7 +11,7 @@ import org.slf4j.Logger;
  **/
 public class DeathStatsConfig {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeathStatsConfig.class);
     private static DeathStatsConfig INSTANCE = null;
 
     private final ForgeConfigSpec.IntValue points5s;

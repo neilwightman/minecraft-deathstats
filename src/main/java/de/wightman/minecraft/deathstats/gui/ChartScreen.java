@@ -265,6 +265,4 @@ public class ChartScreen extends Screen {
 
         return dataset;
     }
-
-
 }

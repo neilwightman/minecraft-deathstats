@@ -211,7 +211,11 @@ shadowJar {
     minimize {}
     classifier = ''
     configurations = [project.configurations.shade]
-    relocate 'lib.group', "${project.group}.shadow.lib.group" // ensure repackaged packages have unique names
+    // Cant minimize and relocate see
+    // https://github.com/johnrengelman/shadow/issues/610
+    // https://github.com/johnrengelman/shadow/pull/796
+    // TOTO try to make a relocated subproject for now
+    // relocate 'org.jfree', "${project.group}.org.jfree" // ensure repackaged packages have unique names
 }
 
 reobf {

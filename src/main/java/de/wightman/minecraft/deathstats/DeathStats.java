@@ -22,11 +22,12 @@ import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.IExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
+import org.slf4j.LoggerFactory;
 
 @Mod("deathstats")
 public class DeathStats {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeathStats.class);
 
     public static final String MOD_ID = "deathstats";
 

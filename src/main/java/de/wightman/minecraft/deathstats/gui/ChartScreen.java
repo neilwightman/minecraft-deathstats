@@ -40,15 +40,16 @@ public class ChartScreen extends Screen {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChartScreen.class);
 
-    private static final int MARGIN = 20;
-
     private final ResourceLocation chartLocation;
     private final ResourceLocation borderLocation;
     private Button done;
     private DynamicTexture texture;
     private java.awt.Font minecraftFont = null;
     private java.awt.Font minecraftSmallFont = null;
+    private int lastChartWidth = -1;
+    private int lastChartHeight = -1;
 
+    private static final int MARGIN = 20;
     private static final int BUTTON_HEIGHT = 20;
     private static final int BUTTONS_INTERVAL = 4;
     private static final int BOTTOM_BUTTON_WIDTH = 150;
@@ -70,6 +71,7 @@ public class ChartScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+
         done = new Button(
                 (this.width + BUTTONS_INTERVAL) / 2,
                 this.height - BOTTOM_BUTTON_HEIGHT_OFFSET,
@@ -79,8 +81,12 @@ public class ChartScreen extends Screen {
 
         this.addWidget(done);
 
-        if (texture == null) {
-            updateChartTexture(this.width, this.height);
+        checkForChartUpdate(this.width, this.height);
+    }
+
+    private void checkForChartUpdate(int width, int height) {
+        if (lastChartWidth != width || lastChartHeight != height) {
+            updateChartTexture(width, height);
         }
     }
 
@@ -97,30 +103,37 @@ public class ChartScreen extends Screen {
         RenderSystem.setShaderTexture(0, borderLocation);
         RenderSystem.enableBlend();
 
+        int chartTop = MARGIN;
+        int chartBottom = this.height - BOTTOM_BUTTON_HEIGHT_OFFSET - BUTTONS_INTERVAL;
+        int chartLeft = MARGIN;
+        int chartRight = this.width - MARGIN;
+
         // Top and bottom
-        for (int x = 8; x < width - 8; x=x+8) {
-            GuiComponent.blit(poseStack, x, 0, 8F, 0.0f, 8, 8, 256, 256);
-            GuiComponent.blit(poseStack, x, height - 8, 8F, 16.0f, 8, 8, 256, 256);
+        for (int x = chartLeft + 8; x < chartRight - 8; x=x+8) {
+            GuiComponent.blit(poseStack, x, chartTop, 8F, 0.0f, 8, 8, 256, 256);
+            GuiComponent.blit(poseStack, x, chartBottom - 8, 8F, 16.0f, 8, 8, 256, 256);
         }
 
         // Left and right
-        for (int y = 8; y < height - 8; y=y+8) {
-            GuiComponent.blit(poseStack, 0, y, 0F, 8f, 8, 8, 256, 256);
-            GuiComponent.blit(poseStack, width - 8, y, 16F, 8f, 8, 8, 256, 256);
+        for (int y = chartTop + 8; y < chartBottom - 8; y=y+8) {
+            GuiComponent.blit(poseStack, chartLeft, y, 0F, 8f, 8, 8, 256, 256);
+            GuiComponent.blit(poseStack, chartRight - 8, y, 16F, 8f, 8, 8, 256, 256);
         }
 
         // Top left
-        GuiComponent.blit(poseStack, 0, 0, 0.0F, 0.0f, 8, 8, 256, 256);
+        GuiComponent.blit(poseStack, chartLeft, chartTop, 0.0F, 0.0f, 8, 8, 256, 256);
         // Top right
-        GuiComponent.blit(poseStack, width - 8, 0, 16.0F, 0.0f, 8, 8, 256, 256);
+        GuiComponent.blit(poseStack, chartRight - 8, chartTop, 16.0F, 0.0f, 8, 8, 256, 256);
 
         // Bottom left
-        GuiComponent.blit(poseStack, 0, height - 8, 0.0F, 16.0f, 8, 8, 256, 256);
+        GuiComponent.blit(poseStack, chartLeft, chartBottom - 8, 0.0F, 16.0f, 8, 8, 256, 256);
         // Bottom right
-        GuiComponent.blit(poseStack, width - 8, height - 8, 16.0F, 16.0f, 8, 8, 256, 256);
+        GuiComponent.blit(poseStack, chartRight - 8, chartBottom - 8, 16.0F, 16.0f, 8, 8, 256, 256);
 
         RenderSystem.disableBlend();
         poseStack.popPose();
+
+        checkForChartUpdate(this.width, this.height);
 
         // Something went wrong generating the graph
         if (texture != null) {
@@ -130,13 +143,18 @@ public class ChartScreen extends Screen {
             RenderSystem.enableBlend();
             poseStack.scale(1.0f, 1.0f, 1.0f);
 
-            GuiComponent.blit(poseStack, 8, 8, 0.0F, 0.0f, this.width - 16, this.height- 16, this.width- 16, this.height- 16);
+            //GuiComponent.blit(poseStack, 8, 8, 0.0F, 0.0f, this.width - 16, this.height- 16, this.width - 16, this.height- 16);
+            int chartHeight = chartBottom - chartTop - 16;
+            int chartWidth = chartRight - chartLeft - 16;
+
+            GuiComponent.blit(poseStack, chartLeft + 8, chartTop + 8, 0.0F, 0.0f,
+                    chartWidth, chartHeight, chartWidth, chartHeight);
             RenderSystem.disableBlend();
             poseStack.popPose();
         }
 
         drawCenteredString(poseStack, this.font, this.title.getString(),
-                this.width / 2, 12, 0xFFFFFF);
+                this.width / 2, 8, 0xFFFFFF);
 
         done.render(poseStack, mouseX, mouseY, partialTick);
 
@@ -169,13 +187,12 @@ public class ChartScreen extends Screen {
     }
 
     @Override
-    public void resize(Minecraft minecraft, int width, int height) {
+    public void resize(Minecraft minecraft, int resizedWidth, int resizedHeight) {
         // TODO don't generate on Window resize events.
 
-        // update image
-        updateChartTexture(width, height);
+        checkForChartUpdate(resizedWidth, resizedHeight);
 
-        super.resize(minecraft, width, height);
+        super.resize(minecraft, resizedWidth, resizedHeight);
     }
 
     @Override
@@ -189,11 +206,25 @@ public class ChartScreen extends Screen {
     }
 
 
-    private void updateChartTexture(int width, int height) {
-        LOGGER.debug("updateChartTexture {}x{}", width, height);
+    private void updateChartTexture(int chartWidth, int chartHeight) {
+        // TODO something goes wrong when changing to full screen.   May need to check width height of cached graph
+
+        lastChartWidth = chartWidth;
+        lastChartHeight = chartHeight;
+
+        LOGGER.debug("updateChartTexture {}x{}", chartWidth, chartHeight);
         JFreeChart chart = createChart(createDataset());
+
+        int chartTop = MARGIN;
+        int chartBottom = this.height - BOTTOM_BUTTON_HEIGHT_OFFSET - BUTTONS_INTERVAL;
+        int chartLeft = MARGIN;
+        int chartRight = chartWidth - MARGIN;
+
+        chartWidth = chartRight - chartLeft - 16;
+        chartHeight = chartBottom - chartTop - 16;
+
         double scale = this.minecraft.getWindow().getGuiScale();
-        BufferedImage image = chart.createBufferedImage((int) (width * scale) - 16, (int) (height * scale) - 16);
+        BufferedImage image = chart.createBufferedImage((int) (chartWidth * scale) - 16, (int) (chartHeight * scale) - 16);
         try {
             ByteBuffer buffer = convertImageData(image);
             NativeImage nativeImage = NativeImage.read(RGBA, buffer);
@@ -260,7 +291,7 @@ public class ChartScreen extends Screen {
         DateAxis timeAxis = (DateAxis) plot.getDomainAxis();
         timeAxis.setDateFormatOverride(new SimpleDateFormat("HH"));
         timeAxis.setTickUnit(new DateTickUnit(DateTickUnitType.HOUR, 1));
-        timeAxis.setLabelFont( this.height < 640 ? minecraftSmallFont : minecraftFont);
+        timeAxis.setLabelFont( minecraftFont ); // TODO
         timeAxis.setTickLabelFont(minecraftSmallFont);
         timeAxis.setLabelPaint(Color.black);
 
@@ -268,7 +299,7 @@ public class ChartScreen extends Screen {
         DecimalFormat decimalFormatter = new DecimalFormat("0");
         deathAxis.setNumberFormatOverride(decimalFormatter);
         deathAxis.setTickUnit(new NumberTickUnit(1.0));
-        deathAxis.setLabelFont( this.width < 640 ? minecraftSmallFont : minecraftFont);
+        deathAxis.setLabelFont( minecraftFont ); // TODO
         deathAxis.setTickLabelFont(minecraftSmallFont);
         deathAxis.setLabelPaint(Color.black);
 

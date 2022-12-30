@@ -64,7 +64,7 @@ public class ChartScreen extends Screen {
             this.minecraftFont = customFont.deriveFont(18f);
             this.minecraftSmallFont = customFont.deriveFont(12f);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Cannot load fonts from assets.", e);
         }
     }
 
@@ -81,14 +81,9 @@ public class ChartScreen extends Screen {
 
         this.addWidget(done);
 
-        checkForChartUpdate(this.width, this.height);
+        updateChartTexture(this.width, this.height);
     }
 
-    private void checkForChartUpdate(int width, int height) {
-        if (lastChartWidth != width || lastChartHeight != height) {
-            updateChartTexture(width, height);
-        }
-    }
 
     @Override
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
@@ -96,12 +91,7 @@ public class ChartScreen extends Screen {
 
         Minecraft.getInstance().getTextureManager().bindForSetup(borderLocation);
 
-        poseStack.pushPose();
-        RenderSystem.defaultBlendFunc();
-        poseStack.scale(1.0f, 1.0f, 1.0f);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, borderLocation);
-        RenderSystem.enableBlend();
 
         int chartTop = MARGIN;
         int chartBottom = this.height - BOTTOM_BUTTON_HEIGHT_OFFSET - BUTTONS_INTERVAL;
@@ -130,27 +120,15 @@ public class ChartScreen extends Screen {
         // Bottom right
         GuiComponent.blit(poseStack, chartRight - 8, chartBottom - 8, 16.0F, 16.0f, 8, 8, 256, 256);
 
-        RenderSystem.disableBlend();
-        poseStack.popPose();
-
-        checkForChartUpdate(this.width, this.height);
-
         // Something went wrong generating the graph
         if (texture != null) {
-            poseStack.pushPose();
-            RenderSystem.defaultBlendFunc();
             RenderSystem.setShaderTexture(0, chartLocation);
-            RenderSystem.enableBlend();
-            poseStack.scale(1.0f, 1.0f, 1.0f);
 
-            //GuiComponent.blit(poseStack, 8, 8, 0.0F, 0.0f, this.width - 16, this.height- 16, this.width - 16, this.height- 16);
             int chartHeight = chartBottom - chartTop - 16;
             int chartWidth = chartRight - chartLeft - 16;
 
             GuiComponent.blit(poseStack, chartLeft + 8, chartTop + 8, 0.0F, 0.0f,
                     chartWidth, chartHeight, chartWidth, chartHeight);
-            RenderSystem.disableBlend();
-            poseStack.popPose();
         }
 
         drawCenteredString(poseStack, this.font, this.title.getString(),
@@ -187,15 +165,6 @@ public class ChartScreen extends Screen {
     }
 
     @Override
-    public void resize(Minecraft minecraft, int resizedWidth, int resizedHeight) {
-        // TODO don't generate on Window resize events.
-
-        checkForChartUpdate(resizedWidth, resizedHeight);
-
-        super.resize(minecraft, resizedWidth, resizedHeight);
-    }
-
-    @Override
     public void onClose() {
         super.onClose();
 
@@ -207,23 +176,22 @@ public class ChartScreen extends Screen {
 
 
     private void updateChartTexture(int chartWidth, int chartHeight) {
-        // TODO something goes wrong when changing to full screen.   May need to check width height of cached graph
-
         lastChartWidth = chartWidth;
         lastChartHeight = chartHeight;
 
+        final long start = System.nanoTime();
         LOGGER.debug("updateChartTexture {}x{}", chartWidth, chartHeight);
-        JFreeChart chart = createChart(createDataset());
+        double scale = this.minecraft.getWindow().getGuiScale();
+        JFreeChart chart = createChart(createDataset(), chartWidth * (int)scale, chartHeight * (int)scale);
 
         int chartTop = MARGIN;
-        int chartBottom = this.height - BOTTOM_BUTTON_HEIGHT_OFFSET - BUTTONS_INTERVAL;
+        int chartBottom = chartHeight - BOTTOM_BUTTON_HEIGHT_OFFSET - BUTTONS_INTERVAL;
         int chartLeft = MARGIN;
         int chartRight = chartWidth - MARGIN;
 
         chartWidth = chartRight - chartLeft - 16;
         chartHeight = chartBottom - chartTop - 16;
 
-        double scale = this.minecraft.getWindow().getGuiScale();
         BufferedImage image = chart.createBufferedImage((int) (chartWidth * scale) - 16, (int) (chartHeight * scale) - 16);
         try {
             ByteBuffer buffer = convertImageData(image);
@@ -234,6 +202,9 @@ public class ChartScreen extends Screen {
             this.minecraft.getTextureManager().register(chartLocation, texture);
         } catch (IOException ioe) {
             LOGGER.error("Failed to generate chart.", ioe);
+        } finally {
+            double duration = ((double)System.nanoTime() - (double)start) / 1_000_000_000.0f;
+            LOGGER.debug("updateChartTexture duration = {}s", duration );
         }
     }
 
@@ -253,7 +224,7 @@ public class ChartScreen extends Screen {
         return null;
     }
 
-    public JFreeChart createChart(XYDataset dataset) {
+    public JFreeChart createChart(XYDataset dataset, int chartWidth, int chartHeight) {
         JFreeChart chart = ChartFactory.createTimeSeriesChart(
                 "",            // title
                 "Time",             // x-axis label
@@ -288,10 +259,13 @@ public class ChartScreen extends Screen {
             renderer.setSeriesPaint(0, Color.BLACK);
         }
 
+        boolean isSmall = chartWidth <= 600 || chartHeight <= 400;
+        LOGGER.debug("IsSmall = {} {}x{}", isSmall, chartWidth, chartHeight);
+
         DateAxis timeAxis = (DateAxis) plot.getDomainAxis();
         timeAxis.setDateFormatOverride(new SimpleDateFormat("HH"));
         timeAxis.setTickUnit(new DateTickUnit(DateTickUnitType.HOUR, 1));
-        timeAxis.setLabelFont( minecraftFont ); // TODO
+        timeAxis.setLabelFont( isSmall ? minecraftSmallFont : minecraftFont );
         timeAxis.setTickLabelFont(minecraftSmallFont);
         timeAxis.setLabelPaint(Color.black);
 
@@ -299,7 +273,7 @@ public class ChartScreen extends Screen {
         DecimalFormat decimalFormatter = new DecimalFormat("0");
         deathAxis.setNumberFormatOverride(decimalFormatter);
         deathAxis.setTickUnit(new NumberTickUnit(1.0));
-        deathAxis.setLabelFont( minecraftFont ); // TODO
+        deathAxis.setLabelFont( isSmall ? minecraftSmallFont : minecraftFont );
         deathAxis.setTickLabelFont(minecraftSmallFont);
         deathAxis.setLabelPaint(Color.black);
 

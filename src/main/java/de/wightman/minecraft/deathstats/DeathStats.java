@@ -63,8 +63,7 @@ public class DeathStats {
     {
         if (Minecraft.getInstance().player == null) return;
 
-        if (event.getKey() == key.getKey().getValue() &&
-                event.getAction() == GLFW.GLFW_PRESS) {
+        if (event.getKey() == key.getKey().getValue() &&  event.getAction() == GLFW.GLFW_PRESS) {
             if (!(Minecraft.getInstance().screen instanceof ChartScreen)) {
                 Minecraft.getInstance().setScreen(new ChartScreen());
             }

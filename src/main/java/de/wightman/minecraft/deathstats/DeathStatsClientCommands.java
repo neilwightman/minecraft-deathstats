@@ -58,7 +58,13 @@ public class DeathStatsClientCommands {
     }
 
     private static int help(final CommandSourceStack source) {
-        TextComponent m = new TextComponent("no help, yet");
+        TextComponent m = new TextComponent("""
+                DeathStats 
+                /deathstats set current <value> - set current value
+                /deathstats get current - get current value
+                /deathstats set max <value> - set max value
+                /deathstats get max - get max value
+                """);
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
@@ -70,13 +76,13 @@ public class DeathStatsClientCommands {
     }
 
     private static int get_current(final CommandSourceStack source) {
-        TextComponent m = new TextComponent("Current Deaths: " + DeathStats.getInstance().getCurrent());
+        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getCurrent()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
 
     private static int get_max(final CommandSourceStack source) {
-        TextComponent m = new TextComponent("Max Deaths: " + DeathStats.getInstance().getMax());
+        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getMax()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }

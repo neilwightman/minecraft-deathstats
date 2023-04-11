@@ -29,6 +29,11 @@ public class DeathOverlayGui extends Gui {
         Font f = getFont();
         int fontWidth = Math.max(f.width(line1), f.width(line2));
 
+        int current = stats.getCurrent();
+        int max = stats.getMax();
+        if (stats.isHighScore()) {
+            drawString(poseStack, this.getFont(), "High Score", width - fontWidth - 10 , (height / 2) -  f.lineHeight, Integer.parseInt("00FF00", 16));
+        }
         drawString(poseStack, this.getFont(), line1, width - fontWidth - 10 , (height / 2) , Integer.parseInt("FFFFFF", 16));
         drawString(poseStack, this.getFont(), line2, width - fontWidth - 10 , (height / 2) + f.lineHeight, Integer.parseInt("FFFFFF", 16));
     }

@@ -153,6 +153,8 @@ mixin {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
+    mavenCentral()
+
     // Put repositories for dependencies here
     // ForgeGradle automatically adds the Forge maven and Maven Central for you
 
@@ -180,8 +182,12 @@ dependencies {
     // Examples using mod jars from ./libs
     // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
 
-    implementation group: 'org.jfree', name: 'jfreechart', version: '1.5.3'
-    shade group: 'org.jfree', name: 'jfreechart', version: '1.5.3'
+    //implementation group: 'org.jfree', name: 'jfreechart', version: '1.5.3'
+    //shade group: 'org.jfree', name: 'jfreechart', version: '1.5.3'
+
+    // https://mvnrepository.com/artifact/com.h2database/h2-mvstore
+    implementation 'com.h2database:h2-mvstore:2.1.214'
+    shade group: 'com.h2database', name: 'h2-mvstore', version: '2.1.214'
 
     // For more info...
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html

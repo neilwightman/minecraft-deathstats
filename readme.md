@@ -4,6 +4,9 @@
 
  All rights reserved.
 
-## TODO
-
- * Implement config support (if needed) https://github.com/MinecraftForge/MinecraftForge/pull/8874
+ * Track deaths per session
+ * Show number when you die
+ * Show if its higher than max session 
+ * Hide side menu after specific time of no deaths
+ * Command to reshow again for some time
+ * Store when max was set

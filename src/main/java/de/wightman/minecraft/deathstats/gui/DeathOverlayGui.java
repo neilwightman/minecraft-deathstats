@@ -7,13 +7,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 
 public class DeathOverlayGui extends Gui {
 
     private static final DeathStats stats = DeathStats.getInstance();
 
-    public DeathOverlayGui(Minecraft minecraft) {
-        super(minecraft);
+    public DeathOverlayGui(Minecraft minecraft, ItemRenderer itemRenderer) {
+        super(minecraft, itemRenderer);
     }
 
     public void render(PoseStack poseStack) {

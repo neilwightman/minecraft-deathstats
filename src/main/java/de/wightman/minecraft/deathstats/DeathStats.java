@@ -1,14 +1,13 @@
 package de.wightman.minecraft.deathstats;
 
 import de.wightman.minecraft.deathstats.gui.HudClientEvent;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.IExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -66,22 +65,7 @@ public class DeathStats {
         return INSTANCE;
     }
 
-    public void handlePlayerCombatKill(final ClientboundPlayerCombatKillPacket clientboundPlayerCombatKillPacket) {
-        final ClientLevel level = Minecraft.getInstance().level;
-        final Entity entity = level.getEntity(clientboundPlayerCombatKillPacket.getPlayerId());
-        // Only process LocalPlayer
-        if (entity == Minecraft.getInstance().player) {
-            if (map == null) return;
-
-            // update deaths
-            Integer current = map.get(KEY_CURRENT);
-            current += 1;
-
-            LOGGER.debug("death current={}", current);
-
-            setCurrent(current);
-        }
-    }
+    // Handle start, leave and deaths
 
     public void startSession() {
         try {
@@ -106,8 +90,8 @@ public class DeathStats {
 
         } catch (MVStoreException mvStoreException) {
             LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), mvStoreException);
-            TextComponent m = new TextComponent("ERROR: Cannot open " + deathsFile.getAbsolutePath());
-            Minecraft.getInstance().player.sendMessage(m, Util.NIL_UUID);
+            MutableComponent c = Component.literal("ERROR: Cannot open " + deathsFile.getAbsolutePath());
+            Minecraft.getInstance().player.sendSystemMessage(c);
         }
     }
 
@@ -154,5 +138,36 @@ public class DeathStats {
 
     public boolean isHighScore() {
         return isHighScore;
+    }
+
+    public File getDeathsFile() {
+        return deathsFile;
+    }
+
+    // Register user events
+
+    @SubscribeEvent
+    public void onJoin(ClientPlayerNetworkEvent.LoggingIn event) {
+        startSession();
+    }
+
+    @SubscribeEvent
+    public void onLeave(ClientPlayerNetworkEvent.LoggingOut event) {
+        endSession();
+    }
+
+    @SubscribeEvent
+    public void onRespawn(ClientPlayerNetworkEvent.Clone event) {
+        if (event.getPlayer() == Minecraft.getInstance().player) {
+            if (map == null) return;
+
+            // update deaths
+            Integer current = map.get(KEY_CURRENT);
+            current += 1;
+
+            LOGGER.debug("death current={}", current);
+
+            setCurrent(current);
+        }
     }
 }

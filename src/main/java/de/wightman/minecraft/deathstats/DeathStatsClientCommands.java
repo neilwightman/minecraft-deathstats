@@ -4,16 +4,13 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- * @author nwightma
- */
 public class DeathStatsClientCommands {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathStatsClientCommands.class);
@@ -43,6 +40,8 @@ public class DeathStatsClientCommands {
                 )
                 .then(Commands.literal("help")
                         .executes(ctx -> help(ctx.getSource()))
+                ).then(Commands.literal("debug")
+                        .executes(ctx -> debug(ctx.getSource()))
                 )
         );
     }
@@ -58,14 +57,16 @@ public class DeathStatsClientCommands {
     }
 
     private static int help(final CommandSourceStack source) {
-        TextComponent m = new TextComponent("""
-                DeathStats 
+        MutableComponent m = Component.literal("""
+                DeathStats by mnkybrdr
+                
                 /deathstats set current <value> - set current value
                 /deathstats get current - get current value
                 /deathstats set max <value> - set max value
                 /deathstats get max - get max value
+                /deathstats debug - shows file location
                 """);
-        source.getEntity().sendMessage(m, Util.NIL_UUID);
+        source.getEntity().sendSystemMessage(m);
         return 0;
     }
 
@@ -76,14 +77,20 @@ public class DeathStatsClientCommands {
     }
 
     private static int get_current(final CommandSourceStack source) {
-        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getCurrent()));
-        source.getEntity().sendMessage(m, Util.NIL_UUID);
+        MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getCurrent()));
+        source.getEntity().sendSystemMessage(m);
         return 0;
     }
 
     private static int get_max(final CommandSourceStack source) {
-        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getMax()));
-        source.getEntity().sendMessage(m, Util.NIL_UUID);
+        MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getMax()));
+        source.getEntity().sendSystemMessage(m);
+        return 0;
+    }
+
+    private static int debug(final CommandSourceStack source) {
+        MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getDeathsFile()));
+        source.getEntity().sendSystemMessage(m);
         return 0;
     }
 }

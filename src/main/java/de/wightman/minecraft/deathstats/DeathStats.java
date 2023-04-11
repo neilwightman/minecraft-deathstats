@@ -33,6 +33,7 @@ public class DeathStats {
     private File deathsFile;
     private MVStore store;
     private MVMap<String, Integer> map;
+    private boolean isHighScore = false;
 
     private static final String KEY_MAX = "session_death_max";
     private static final String KEY_CURRENT = "current_session_deaths";
@@ -70,28 +71,15 @@ public class DeathStats {
         final Entity entity = level.getEntity(clientboundPlayerCombatKillPacket.getPlayerId());
         // Only process LocalPlayer
         if (entity == Minecraft.getInstance().player) {
-            //final Entity killerEntity = level.getEntity(clientboundPlayerCombatKillPacket.getKillerId());
-            //final Component c = clientboundPlayerCombatKillPacket.getMessage();
-
             if (map == null) return;
 
             // update deaths
             Integer current = map.get(KEY_CURRENT);
             current += 1;
-            map.put(KEY_CURRENT, current);
 
-            Integer max = map.get(KEY_MAX);
+            LOGGER.debug("death current={}", current);
 
-            LOGGER.debug("death max={} current={}", max, current);
-
-            if (current >= max) {
-                map.put(KEY_MAX, current);
-
-                TextComponent highScoreText = new TextComponent("High Score");
-                TextComponent deathsText = new TextComponent("Deaths : " + current);
-                Minecraft.getInstance().gui.setTitle(highScoreText);
-                Minecraft.getInstance().gui.setSubtitle(deathsText);
-            }
+            setCurrent(current);
         }
     }
 
@@ -100,18 +88,21 @@ public class DeathStats {
             store = MVStore.open(deathsFile.getAbsolutePath());
 
             map = store.openMap("minecraft_deaths");
-            // current is reset on start of session
-            map.put(KEY_CURRENT, 0);
+            // allow player to clear and define what a current session is.
+            Integer current = map.putIfAbsent(KEY_CURRENT, 0);
+            if (current == null) {
+                current = 0;
+            }
 
             Integer max = map.putIfAbsent(KEY_MAX, 0);
             if (max == null) {
                 max = 0;
             }
 
-            LOGGER.debug("startSession {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level);
+            isHighScore = false;
 
-            TextComponent m = new TextComponent("Max Deaths: " + max);
-            Minecraft.getInstance().player.sendMessage(m, Util.NIL_UUID);
+            LOGGER.debug("startSession {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level);
+            LOGGER.debug("deaths max={}, current={}", max, current);
 
         } catch (MVStoreException mvStoreException) {
             LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), mvStoreException);
@@ -147,6 +138,21 @@ public class DeathStats {
 
     public void setCurrent(final int current) {
         if (map == null) return;
+
         map.put(KEY_CURRENT, current);
+
+        Integer max = map.get(KEY_MAX);
+
+        if (current > max) {
+            map.put(KEY_MAX, current);
+
+            isHighScore = true;
+        } else {
+            isHighScore = false;
+        }
+    }
+
+    public boolean isHighScore() {
+        return isHighScore;
     }
 }

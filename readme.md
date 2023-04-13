@@ -10,3 +10,11 @@
  * Hide side menu after specific time of no deaths
  * Command to reshow again for some time
  * Store when max was set
+
+# Build
+
+```bash
+java17
+./gradlew genIntellijRuns
+./gradlew build
+```

@@ -43,6 +43,8 @@ public class DeathStatsClientCommands {
                 )
                 .then(Commands.literal("help")
                         .executes(ctx -> help(ctx.getSource()))
+                ).then(Commands.literal("debug")
+                        .executes(ctx -> debug(ctx.getSource()))
                 )
         );
     }
@@ -59,11 +61,13 @@ public class DeathStatsClientCommands {
 
     private static int help(final CommandSourceStack source) {
         TextComponent m = new TextComponent("""
-                DeathStats 
+                DeathStats by mnkybrdr
+
                 /deathstats set current <value> - set current value
                 /deathstats get current - get current value
                 /deathstats set max <value> - set max value
                 /deathstats get max - get max value
+                /deathstats debug - shows file location
                 """);
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
@@ -83,6 +87,12 @@ public class DeathStatsClientCommands {
 
     private static int get_max(final CommandSourceStack source) {
         TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getMax()));
+        source.getEntity().sendMessage(m, Util.NIL_UUID);
+        return 0;
+    }
+
+    private static int debug(final CommandSourceStack source) {
+        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getDeathsFile()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }

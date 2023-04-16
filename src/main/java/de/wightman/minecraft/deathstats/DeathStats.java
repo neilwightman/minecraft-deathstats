@@ -138,6 +138,10 @@ public class DeathStats {
         return isHighScore;
     }
 
+    public File getDeathsFile() {
+        return deathsFile;
+    }
+
     // Register user events
 
     @SubscribeEvent

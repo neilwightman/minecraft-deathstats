@@ -10,6 +10,8 @@
  * Hide side menu after specific time of no deaths
  * Command to reshow again for some time
  * Store when max was set
+ * Change high score color as you get close to it.  90% 95%?
+ * Add fabric support
 
 # Build
 

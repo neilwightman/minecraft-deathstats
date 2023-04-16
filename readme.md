@@ -20,3 +20,9 @@ java17
 ./gradlew genIntellijRuns
 ./gradlew build
 ```
+
+# Release 
+ * Modrinth
+ * github release
+ 
+ 

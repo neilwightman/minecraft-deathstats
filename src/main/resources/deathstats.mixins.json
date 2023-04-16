@@ -4,8 +4,6 @@
 	"compatibilityLevel": "JAVA_17",
 	"refmap": "deathstats.refmap.json",
 	"mixins": [
-            "MixinClientPacketListener",
-			"MixinGame"
 	],
 	"client": [
 	],

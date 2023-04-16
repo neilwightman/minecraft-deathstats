@@ -3,12 +3,11 @@ package de.wightman.minecraft.deathstats;
 import de.wightman.minecraft.deathstats.gui.HudClientEvent;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
-import net.minecraft.world.entity.Entity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.IExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -64,23 +63,6 @@ public class DeathStats {
 
     public static DeathStats getInstance() {
         return INSTANCE;
-    }
-
-    public void handlePlayerCombatKill(final ClientboundPlayerCombatKillPacket clientboundPlayerCombatKillPacket) {
-        final ClientLevel level = Minecraft.getInstance().level;
-        final Entity entity = level.getEntity(clientboundPlayerCombatKillPacket.getPlayerId());
-        // Only process LocalPlayer
-        if (entity == Minecraft.getInstance().player) {
-            if (map == null) return;
-
-            // update deaths
-            Integer current = map.get(KEY_CURRENT);
-            current += 1;
-
-            LOGGER.debug("death current={}", current);
-
-            setCurrent(current);
-        }
     }
 
     public void startSession() {
@@ -154,5 +136,34 @@ public class DeathStats {
 
     public boolean isHighScore() {
         return isHighScore;
+    }
+
+    // Register user events
+
+    @SubscribeEvent
+    public void onJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        startSession();
+    }
+
+    @SubscribeEvent
+    public void onLeave(PlayerEvent.PlayerLoggedOutEvent event) {
+        endSession();
+    }
+
+    @SubscribeEvent
+    public void onRespawn(PlayerEvent.Clone event) {
+        if (Minecraft.getInstance().player == null) return;
+
+        if (event.isWasDeath() && event.getOriginal().getUUID().equals(Minecraft.getInstance().player.getUUID())) {
+            if (map == null) return;
+
+            // update deaths
+            Integer current = map.get(KEY_CURRENT);
+            current += 1;
+
+            LOGGER.debug("death current={}", current);
+
+            setCurrent(current);
+        }
     }
 }

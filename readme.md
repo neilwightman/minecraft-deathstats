@@ -24,5 +24,7 @@ java17
 # Release 
  * Modrinth
  * github release
- 
- 
+
+Issues
+ * https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
+   * https://github.com/MinecraftForge/MinecraftForge/pull/7754 

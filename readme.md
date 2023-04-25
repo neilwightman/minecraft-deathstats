@@ -10,3 +10,21 @@
  * Hide side menu after specific time of no deaths
  * Command to reshow again for some time
  * Store when max was set
+ * Change high score color as you get close to it.  90% 95%?
+ * Add fabric support
+
+# Build
+
+```bash
+java17
+./gradlew genIntellijRuns
+./gradlew build
+```
+
+# Release 
+ * Modrinth
+ * github release
+
+Issues
+ * https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
+   * https://github.com/MinecraftForge/MinecraftForge/pull/7754 

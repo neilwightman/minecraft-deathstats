@@ -209,13 +209,14 @@ jar {
                 "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
                 ])
     }
+    classifier = '1.19.2-forge'
 }
 
 tasks.shadowJar.dependsOn('reobfJar')
 
 shadowJar {
     minimize {}
-    classifier = ''
+    classifier = '1.19.2-forge'
     configurations = [project.configurations.shade]
     // Cant minimize and relocate see
     // https://github.com/johnrengelman/shadow/issues/610

@@ -10,10 +10,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- * @author nwightma
- */
 public class DeathStatsClientCommands {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathStatsClientCommands.class);
@@ -61,21 +57,30 @@ public class DeathStatsClientCommands {
 
     private static int help(final CommandSourceStack source) {
         TextComponent m = new TextComponent("""
-                DeathStats by mnkybrdr
+                §lDeathStats§r by §6mnkybrdr§r
 
-                /deathstats set current <value> - set current value
-                /deathstats get current - get current value
-                /deathstats set max <value> - set max value
-                /deathstats get max - get max value
-                /deathstats debug - shows file location
+                §6/deathstats§f set current §2<value>§f - §oset current value§r
+                §6/deathstats§f get current - §oget current value§r
+                §6/deathstats§f set max §2<value>§f - §oset max value§r
+                §6/deathstats§f get max - §oget max value§r
+                §6/deathstats§f debug - §oshows debug information§r
                 """);
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
 
     private static int get_all(final CommandSourceStack source) {
-        get_current(source);
-        get_max(source);
+        int current = DeathStats.getInstance().getCurrent();
+        int max = DeathStats.getInstance().getMax();
+        boolean highScore = DeathStats.getInstance().isHighScore();
+        TextComponent m = new TextComponent("""
+                { 
+                     §4current§f: §9%s§f,
+                     §4max§f: §9%s§f,
+                     §4highScore§f: §2%s§f
+                }  
+                """.formatted(current, max, highScore));
+        source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
 
@@ -94,6 +99,7 @@ public class DeathStatsClientCommands {
     private static int debug(final CommandSourceStack source) {
         TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getDeathsFile()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
+        get_all(source);
         return 0;
     }
 }

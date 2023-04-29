@@ -1,5 +1,6 @@
 {
   "deathstats.name": "Death Stats",
-  "deathstats.key.name" : "Open death chart",
-  "deathstats.key.category": "Death Stats"
+
+  // Sound subtitles
+  "deathstats.highscore.subtitle": "New High Death Score"
 }

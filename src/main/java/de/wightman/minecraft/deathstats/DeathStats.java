@@ -1,17 +1,24 @@
 package de.wightman.minecraft.deathstats;
 
+import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import de.wightman.minecraft.deathstats.gui.HudClientEvent;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.TextComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.IExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVStoreException;
@@ -53,17 +60,23 @@ public class DeathStats {
         String home = System.getProperty("user.home");
         deathsFile = new File(home, "minecraft_deaths.dat");
 
+        IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
+
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         // Client side commands
         MinecraftForge.EVENT_BUS.register(new DeathStatsClientCommands());
         // Hud gui
         MinecraftForge.EVENT_BUS.register(HudClientEvent.class);
+
+        DeathSoundEvents.registerSoundEvent(eventBus);
     }
 
     public static DeathStats getInstance() {
         return INSTANCE;
     }
+
+    // Handle start, leave and deaths
 
     public void startSession() {
         try {
@@ -85,7 +98,6 @@ public class DeathStats {
 
             LOGGER.debug("startSession {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level);
             LOGGER.debug("deaths max={}, current={}", max, current);
-
         } catch (MVStoreException mvStoreException) {
             LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), mvStoreException);
             TextComponent m = new TextComponent("ERROR: Cannot open " + deathsFile.getAbsolutePath());
@@ -128,10 +140,28 @@ public class DeathStats {
         if (current > max) {
             map.put(KEY_MAX, current);
 
+            if (!isHighScore) {
+                playHighScoreSound();
+            }
+
             isHighScore = true;
         } else {
             isHighScore = false;
         }
+    }
+
+    private void playHighScoreSound() {
+        LOGGER.info("playHishScoreSound {} {}", Thread.currentThread().getName(), Thread.currentThread().getId());
+
+        SoundEvent s = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(MOD_ID, "high_score"));
+        if (s == null) {
+            LOGGER.error("high_score sound is null");
+            return;
+        }
+
+        SimpleSoundInstance ssi = SimpleSoundInstance.forUI(s, 1.0f);
+
+        Minecraft.getInstance().getSoundManager().playDelayed(ssi, 1);
     }
 
     public boolean isHighScore() {

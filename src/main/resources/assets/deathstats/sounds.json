@@ -1,0 +1,8 @@
+{
+  "high_score": {
+    "subtitle": "deathstats.highscore.subtitle",
+    "sounds": [
+      "deathstats:high_score"
+    ]
+  }
+}

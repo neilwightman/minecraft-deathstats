@@ -6,6 +6,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,44 @@ public class DeathStatsClientCommands {
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathStatsClientCommands.class);
 
     @SubscribeEvent
+    public void init(final RegisterCommandsEvent event) {
+        // Work around for CCI
+        // https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
+        // CCI runs the commands as though it was running on the server
+        // WARNING : this will only work when playing with a local (embedded) minecraft server.
+        // code will not load on a server as its only Dist.CLIENT
+        event.getDispatcher().register(Commands.literal("deathstats")
+                .then(Commands.literal("get")
+                        .then(Commands.literal("current")
+                                .executes(ctx -> get_current(ctx.getSource()))
+                        )
+                        .then(Commands.literal("max")
+                                .executes(ctx -> get_max(ctx.getSource()))
+                        )
+                        .executes(ctx -> get_all(ctx.getSource()))
+                )
+                .then(Commands.literal("set")
+                        .then(Commands.literal("current")
+                                .then(Commands.argument("current_value", StringArgumentType.string())
+                                        .executes(ctx -> set_current(ctx.getSource(), StringArgumentType.getString(ctx, "current_value")))
+                                )
+                        )
+                        .then(Commands.literal("max").then(Commands.argument("max_value", StringArgumentType.string())
+                                        .executes(ctx -> set_max(ctx.getSource(), StringArgumentType.getString(ctx, "max_value")))
+                                )
+                        )
+                )
+                .then(Commands.literal("help")
+                        .executes(ctx -> help(ctx.getSource()))
+                ).then(Commands.literal("debug")
+                        .executes(ctx -> debug(ctx.getSource()))
+                ).then(Commands.literal("reset")
+                        .executes(ctx -> reset(ctx.getSource()))
+                )
+        );
+    }
+
+    /*@SubscribeEvent
     public void init(final RegisterClientCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("deathstats")
                 .then(Commands.literal("get")
@@ -43,14 +82,16 @@ public class DeathStatsClientCommands {
                         .executes(ctx -> debug(ctx.getSource()))
                 )
         );
-    }
+    }*/
 
     private static int set_max(final CommandSourceStack source, String max) {
+        LOGGER.info("set_max {}", max);
         DeathStats.getInstance().setMax(Integer.parseInt(max));
         return 1;
     }
 
     private static int set_current(final CommandSourceStack source, String current) {
+        LOGGER.info("set_current {}", current);
         DeathStats.getInstance().setCurrent(Integer.parseInt(current));
         return 1;
     }
@@ -74,11 +115,11 @@ public class DeathStatsClientCommands {
         int max = DeathStats.getInstance().getMax();
         boolean highScore = DeathStats.getInstance().isHighScore();
         MutableComponent m = Component.literal("""
-                { 
+                {
                      §4current§f: §9%s§f,
                      §4max§f: §9%s§f,
                      §4highScore§f: §2%s§f
-                }  
+                }
                 """.formatted(current, max, highScore));
         source.getEntity().sendSystemMessage(m);
         return 0;
@@ -100,6 +141,12 @@ public class DeathStatsClientCommands {
         MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getDeathsFile()));
         source.getEntity().sendSystemMessage(m);
         get_all(source);
+        return 0;
+    }
+
+    private static int reset(final CommandSourceStack source) {
+        set_current(source, "0");
+        set_max(source, "0");
         return 0;
     }
 }

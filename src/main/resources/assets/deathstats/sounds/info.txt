@@ -1,0 +1,4 @@
+Info on sounds source
+
+https://mixkit.co/free-sound-effects/win/
+mixkit-arcade-bonus-alert-767.ogg > high_score.ogg (stereo -> mono)

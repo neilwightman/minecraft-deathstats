@@ -1,3 +1,6 @@
 {
-  "deathstats.name": "Death Stats"
+  "deathstats.name": "Death Stats",
+
+  // Sound subtitles
+  "deathstats.highscore.subtitle": "New High Death Score"
 }

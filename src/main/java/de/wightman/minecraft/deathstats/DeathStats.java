@@ -150,7 +150,7 @@ public class DeathStats {
         }
     }
 
-    private void playHighScoreSound() {
+    public void playHighScoreSound() {
         LOGGER.info("playHishScoreSound {} {}", Thread.currentThread().getName(), Thread.currentThread().getId());
 
         SoundEvent s = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(MOD_ID, "high_score"));

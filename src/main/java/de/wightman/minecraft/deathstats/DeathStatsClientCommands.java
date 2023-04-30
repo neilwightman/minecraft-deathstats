@@ -47,6 +47,8 @@ public class DeathStatsClientCommands {
                         .executes(ctx -> help(ctx.getSource()))
                 ).then(Commands.literal("debug")
                         .executes(ctx -> debug(ctx.getSource()))
+                ).then(Commands.literal("sound")
+                        .executes(ctx -> sound(ctx.getSource()))
                 ).then(Commands.literal("reset")
                         .executes(ctx -> reset(ctx.getSource()))
                 )
@@ -105,6 +107,7 @@ public class DeathStatsClientCommands {
                 §6/deathstats§f set max §2<value>§f - §oset max value§r
                 §6/deathstats§f get max - §oget max value§r
                 §6/deathstats§f debug - §oshows debug information§r
+                §6/deathstats§f sound - §oplays high score sound§r
                 """);
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
@@ -147,6 +150,11 @@ public class DeathStatsClientCommands {
     private static int reset(final CommandSourceStack source) {
         set_current(source, "0");
         set_max(source, "0");
+        return 0;
+    }
+
+    private static int sound(final CommandSourceStack source) {
+        DeathStats.getInstance().playHighScoreSound();
         return 0;
     }
 }

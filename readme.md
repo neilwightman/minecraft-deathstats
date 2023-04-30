@@ -25,6 +25,50 @@ java17
  * Modrinth
  * github release
 
-Issues
+# Issues
  * https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
    * https://github.com/MinecraftForge/MinecraftForge/pull/7754 
+
+# Guide
+
+DeathStats tracks users deaths and provides an on screen counter.   
+The values are stored in a file in the users home directory.   
+E.g. `/home/mnkybrdr` or `C:\Users\mnkybrdr`
+
+## In Game Display
+
+![alt text](images/stage1.png)
+
+Deaths are shown in white when less than 50% of max
+
+![alt text](images/stage2.png)
+
+Deaths are shown in yellow when between 50% - 75%
+
+![alt text](images/stage3.png)
+
+Deaths are shown in orange when between 50% - 75%
+
+![alt text](images/stage4.png)
+
+Deaths are shown in red when between 90% - 100%
+
+![alt text](images/stage5.png)
+
+New high score is shown when you are setting the highscore.
+
+## Commands
+
+For the commands run : 
+```/deathstats help```
+
+```
+DeathStats by mnkybrdr
+
+/deathstats set current <value> - set current value
+/deathstats get current - get current value
+/deathstats set max <value> - set max value
+/deathstats get max - get max value
+/deathstats debug - shows debug information
+/deathstats sound - plays high score sound
+```

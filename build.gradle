@@ -21,7 +21,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'  // nwightma
 apply plugin: 'com.github.johnrengelman.shadow'
 
-version = '1.1.0'
+version = '1.1.1'
 group = 'de.wightman.minecraft.deathstats' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'deathstats'
 

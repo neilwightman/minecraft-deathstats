@@ -66,9 +66,12 @@ For the commands run :
 DeathStats by mnkybrdr
 
 /deathstats set current <value> - set current value
-/deathstats get current - get current value
 /deathstats set max <value> - set max value
+/deathstats set visible <true|value> - hides or shows the overlay
+/deathstats get current - get current value
 /deathstats get max - get max value
+/deathstats get highscore - has the highscore hit
 /deathstats debug - shows debug information
 /deathstats sound - plays high score sound
+/deathstats reset - sets max and current to 0
 ```

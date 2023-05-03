@@ -5,7 +5,6 @@ import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.TextComponent;
-import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.slf4j.Logger;
@@ -30,6 +29,9 @@ public class DeathStatsClientCommands {
                         .then(Commands.literal("max")
                                 .executes(ctx -> get_max(ctx.getSource()))
                         )
+                        .then(Commands.literal("highscore")
+                                .executes(ctx -> get_highscore(ctx.getSource()))
+                        )
                         .executes(ctx -> get_all(ctx.getSource()))
                 )
                 .then(Commands.literal("set")
@@ -40,6 +42,9 @@ public class DeathStatsClientCommands {
                         )
                         .then(Commands.literal("max").then(Commands.argument("max_value", StringArgumentType.string())
                                         .executes(ctx -> set_max(ctx.getSource(), StringArgumentType.getString(ctx, "max_value")))
+                                )
+                        ).then(Commands.literal("visible").then(Commands.argument("is_visible", StringArgumentType.string())
+                                        .executes(ctx -> set_visible(ctx.getSource(), StringArgumentType.getString(ctx, "is_visible")))
                                 )
                         )
                 )
@@ -55,37 +60,6 @@ public class DeathStatsClientCommands {
         );
     }
 
-    /*@SubscribeEvent
-    public void init(final RegisterClientCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("deathstats")
-                .then(Commands.literal("get")
-                        .then(Commands.literal("current")
-                            .executes(ctx -> get_current(ctx.getSource()))
-                        )
-                        .then(Commands.literal("max")
-                            .executes(ctx -> get_max(ctx.getSource()))
-                        )
-                        .executes(ctx -> get_all(ctx.getSource()))
-                )
-                .then(Commands.literal("set")
-                        .then(Commands.literal("current")
-                                .then(Commands.argument("current_value", StringArgumentType.string())
-                                    .executes(ctx -> set_current(ctx.getSource(), StringArgumentType.getString(ctx, "current_value")))
-                            )
-                        )
-                        .then(Commands.literal("max").then(Commands.argument("max_value", StringArgumentType.string())
-                                .executes(ctx -> set_max(ctx.getSource(), StringArgumentType.getString(ctx, "max_value")))
-                            )
-                        )
-                )
-                .then(Commands.literal("help")
-                        .executes(ctx -> help(ctx.getSource()))
-                ).then(Commands.literal("debug")
-                        .executes(ctx -> debug(ctx.getSource()))
-                )
-        );
-    }*/
-
     private static int set_max(final CommandSourceStack source, String max) {
         LOGGER.info("set_max {}", max);
         DeathStats.getInstance().setMax(Integer.parseInt(max));
@@ -98,16 +72,25 @@ public class DeathStatsClientCommands {
         return 1;
     }
 
+    private static int set_visible(final CommandSourceStack source, String current) {
+        LOGGER.info("set_visible {}", current);
+        DeathStats.getInstance().setVisible(Boolean.parseBoolean(current));
+        return 1;
+    }
+
     private static int help(final CommandSourceStack source) {
         TextComponent m = new TextComponent("""
                 §lDeathStats§r by §6mnkybrdr§r
 
                 §6/deathstats§f set current §2<value>§f - §oset current value§r
-                §6/deathstats§f get current - §oget current value§r
                 §6/deathstats§f set max §2<value>§f - §oset max value§r
+                §6/deathstats§f set visible §2<true|value>§f - §ohides or shows the overlay§r
+                §6/deathstats§f get current - §oget current value§r
                 §6/deathstats§f get max - §oget max value§r
+                §6/deathstats§f get highscore - §ohas the highscore hit§r
                 §6/deathstats§f debug - §oshows debug information§r
                 §6/deathstats§f sound - §oplays high score sound§r
+                §6/deathstats§f reset - §osets max and current to 0§r
                 """);
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
@@ -117,13 +100,15 @@ public class DeathStatsClientCommands {
         int current = DeathStats.getInstance().getCurrent();
         int max = DeathStats.getInstance().getMax();
         boolean highScore = DeathStats.getInstance().isHighScore();
+        boolean visible = DeathStats.getInstance().isVisible();
         TextComponent m = new TextComponent("""
                 {
                      §4current§f: §9%s§f,
                      §4max§f: §9%s§f,
                      §4highScore§f: §2%s§f
+                     §4visible§f: §2%s§f
                 }
-                """.formatted(current, max, highScore));
+                """.formatted(current, max, highScore, visible));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
@@ -136,6 +121,12 @@ public class DeathStatsClientCommands {
 
     private static int get_max(final CommandSourceStack source) {
         TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getMax()));
+        source.getEntity().sendMessage(m, Util.NIL_UUID);
+        return 0;
+    }
+
+    private static int get_highscore(final CommandSourceStack source) {
+        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().isHighScore()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }

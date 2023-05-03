@@ -1,5 +1,6 @@
 package de.wightman.minecraft.deathstats;
 
+import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import de.wightman.minecraft.deathstats.gui.HudClientEvent;
 import net.minecraft.Util;
@@ -38,11 +39,12 @@ public class DeathStats {
 
     private File deathsFile;
     private MVStore store;
-    private MVMap<String, Integer> map;
+    private MVMap<String, Object> map;
     private boolean isHighScore = false;
 
     private static final String KEY_MAX = "session_death_max";
     private static final String KEY_CURRENT = "current_session_deaths";
+    private static final String KEY_IS_VISIBLE = "is_visible";
 
 
     public DeathStats() {
@@ -84,20 +86,25 @@ public class DeathStats {
 
             map = store.openMap("minecraft_deaths");
             // allow player to clear and define what a current session is.
-            Integer current = map.putIfAbsent(KEY_CURRENT, 0);
+            Integer current = (Integer)map.putIfAbsent(KEY_CURRENT, 0);
             if (current == null) {
                 current = 0;
             }
 
-            Integer max = map.putIfAbsent(KEY_MAX, 0);
+            Integer max = (Integer)map.putIfAbsent(KEY_MAX, 0);
             if (max == null) {
                 max = 0;
+            }
+
+            Boolean visible = (Boolean) map.putIfAbsent(KEY_IS_VISIBLE, true);
+            if (visible == null) {
+                visible = true;
             }
 
             isHighScore = false;
 
             LOGGER.debug("startSession {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level);
-            LOGGER.debug("deaths max={}, current={}", max, current);
+            LOGGER.info("deathstats max={}, current={} visible={}", max, current, visible);
         } catch (MVStoreException mvStoreException) {
             LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), mvStoreException);
             TextComponent m = new TextComponent("ERROR: Cannot open " + deathsFile.getAbsolutePath());
@@ -117,12 +124,12 @@ public class DeathStats {
 
     public int getMax() {
         if (map == null) return -1;
-        return map.get(KEY_MAX);
+        return (Integer) map.get(KEY_MAX);
     }
 
     public int getCurrent() {
         if (map == null) return - 1;
-        return map.get(KEY_CURRENT);
+        return (Integer) map.get(KEY_CURRENT);
     }
 
     public void setMax(final int max) {
@@ -130,18 +137,30 @@ public class DeathStats {
         map.put(KEY_MAX, max);
     }
 
+    public boolean isVisible() {
+        if (map == null) return true;
+        return (Boolean) map.get(KEY_IS_VISIBLE);
+    }
+
+    public void setVisible(boolean visible) {
+        if (map == null) return;
+        map.put(KEY_IS_VISIBLE, visible);
+    }
+
+
     public void setCurrent(final int current) {
         if (map == null) return;
 
         map.put(KEY_CURRENT, current);
 
-        Integer max = map.get(KEY_MAX);
+        Integer max = (Integer) map.get(KEY_MAX);
 
         if (current > max) {
             map.put(KEY_MAX, current);
 
             if (!isHighScore) {
-                playHighScoreSound();
+                if (isVisible()) playHighScoreSound();
+                triggerHighScoreEvent();
             }
 
             isHighScore = true;
@@ -150,8 +169,12 @@ public class DeathStats {
         }
     }
 
+    public void triggerHighScoreEvent() {
+        MinecraftForge.EVENT_BUS.post(NewHighScoreEvent.HIGH_SCORE_EVENT);
+    }
+
     public void playHighScoreSound() {
-        LOGGER.info("playHishScoreSound {} {}", Thread.currentThread().getName(), Thread.currentThread().getId());
+        LOGGER.debug("playHishScoreSound {} {}", Thread.currentThread().getName(), Thread.currentThread().getId());
 
         SoundEvent s = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(MOD_ID, "high_score"));
         if (s == null) {
@@ -192,7 +215,7 @@ public class DeathStats {
             if (map == null) return;
 
             // update deaths
-            Integer current = map.get(KEY_CURRENT);
+            Integer current = (Integer) map.get(KEY_CURRENT);
             current += 1;
 
             LOGGER.debug("death current={}", current);

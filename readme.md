@@ -4,26 +4,27 @@
 
  All rights reserved.
 
-TODO
- * Store each death time and graph it.
+ Its WIP still and currently only tracks a death counter right now and max deaths.
+ 
+ Deaths are tracked (after respawn button is pressed) over time.  
+ 
+You can reset the counter (based on session, twitch stream session, raid, day, month etc) by using the ```/deathstats set current 0```
+ If you want to reset everything you can either ```/deathstats set max 0``` and ```/deathstats set current 0```
+or ```/deathstats reset```
+
+## TODO
+ * Store each death over time and graph it (only for current deaths counter)
  * Add fabric support
 
-# Build
-
-```bash
-java17
-./gradlew genIntellijRuns
-./gradlew build
-```
-
-# Issues
- * The counter only increments after the user respawns not on the actually death.  This is because the client event for respawn is being used and there isnt one for died.
+## Issues
+ * The counter only increments after the user respawns not on the actual death.  This is because the client event for respawn is being used and there isnt one for died.
  * Worked around https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
    * https://github.com/MinecraftForge/MinecraftForge/pull/7754 
 
-# Guide
+## Guide
 
-DeathStats tracks users deaths and provides an on screen counter.   
+DeathStats tracks users deaths and provides an on-screen counter.  
+
 The values are stored in a file in the users home directory.   
 E.g. `/home/mnkybrdr/minecraft_deaths.dat` or `C:\Users\mnkybrdr\minecraft_deaths.dat`
 
@@ -66,4 +67,12 @@ DeathStats by mnkybrdr
 /deathstats debug - shows debug information
 /deathstats sound - plays high score sound
 /deathstats reset - sets max and current to 0
+```
+
+## Build
+
+```bash
+java17
+./gradlew genIntellijRuns
+./gradlew build
 ```

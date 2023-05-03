@@ -12,6 +12,8 @@ You can reset the counter (based on session, twitch stream session, raid, day, m
  If you want to reset everything you can either ```/deathstats set max 0``` and ```/deathstats set current 0```
 or ```/deathstats reset```
 
+![alt text](images/deathstats_logo_1024.png)
+
 ## TODO
  * Store each death over time and graph it (only for current deaths counter)
  * Add fabric support

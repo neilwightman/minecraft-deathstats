@@ -4,13 +4,8 @@
 
  All rights reserved.
 
- * Track deaths per session
- * Show number when you die
- * Show if its higher than max session 
- * Hide side menu after specific time of no deaths
- * Command to reshow again for some time
- * Store when max was set
- * Change high score color as you get close to it.  90% 95%?
+TODO
+ * Store each death time and graph it.
  * Add fabric support
 
 # Build
@@ -21,19 +16,16 @@ java17
 ./gradlew build
 ```
 
-# Release 
- * Modrinth
- * github release
-
 # Issues
- * https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
+ * The counter only increments after the user respawns not on the actually death.  This is because the client event for respawn is being used and there isnt one for died.
+ * Worked around https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
    * https://github.com/MinecraftForge/MinecraftForge/pull/7754 
 
 # Guide
 
 DeathStats tracks users deaths and provides an on screen counter.   
 The values are stored in a file in the users home directory.   
-E.g. `/home/mnkybrdr` or `C:\Users\mnkybrdr`
+E.g. `/home/mnkybrdr/minecraft_deaths.dat` or `C:\Users\mnkybrdr\minecraft_deaths.dat`
 
 ## In Game Display
 

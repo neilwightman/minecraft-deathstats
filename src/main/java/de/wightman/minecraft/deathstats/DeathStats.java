@@ -4,11 +4,13 @@ import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import de.wightman.minecraft.deathstats.gui.HudClientEvent;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.entity.Entity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -60,7 +62,7 @@ public class DeathStats {
         LOGGER.info("Starting DeathStats");
 
         String home = System.getProperty("user.home");
-        deathsFile = new File(home, "minecraft_deaths.dat");
+        deathsFile = new File(home, "minecraft_deaths.dat"); // FIXED
 
         IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
@@ -84,7 +86,8 @@ public class DeathStats {
         try {
             store = MVStore.open(deathsFile.getAbsolutePath());
 
-            map = store.openMap("minecraft_deaths");
+            // Basic key value map
+            map = store.openMap("minecraft_deaths"); // FIXED
             // allow player to clear and define what a current session is.
             Integer current = (Integer)map.putIfAbsent(KEY_CURRENT, 0);
             if (current == null) {
@@ -208,17 +211,21 @@ public class DeathStats {
     }
 
     @SubscribeEvent
-    public void onRespawn(ClientPlayerNetworkEvent.Clone event) {
+    public void onRespawn(final ClientPlayerNetworkEvent.Clone event) {
         if (event.getPlayer() == Minecraft.getInstance().player) {
-            if (map == null) return;
+            final LocalPlayer lp = event.getOldPlayer();
+            if (lp.getRemovalReason() == Entity.RemovalReason.KILLED) {
 
-            // update deaths
-            Integer current = (Integer) map.get(KEY_CURRENT);
-            current += 1;
+                if (map == null) return;
 
-            LOGGER.debug("death current={}", current);
+                // update deaths
+                Integer current = (Integer) map.get(KEY_CURRENT);
+                current += 1;
 
-            setCurrent(current);
+                LOGGER.debug("death current={}", current);
+
+                setCurrent(current);
+            }
         }
     }
 }

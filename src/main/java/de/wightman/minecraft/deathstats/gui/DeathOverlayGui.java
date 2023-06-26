@@ -1,14 +1,18 @@
 package de.wightman.minecraft.deathstats.gui;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import de.wightman.minecraft.deathstats.DeathStats;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.OverlayRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import org.lwjgl.opengl.GL11;
 
-public class DeathOverlayGui extends Gui {
+public class DeathOverlayGui extends AbstractGui {
 
     private static final DeathStats stats = DeathStats.getInstance();
 
@@ -18,18 +22,21 @@ public class DeathOverlayGui extends Gui {
     public static final String ORANGE = "FF4500";
     public static final String GREEN = "32CD32";
     public static final String YELLOW = "FFFF33";
+    private final Minecraft minecraft;
 
     public DeathOverlayGui(Minecraft minecraft) {
-        super(minecraft);
+        super();
+        this.minecraft = minecraft;
     }
 
-    public void render(PoseStack poseStack) {
+    public FontRenderer getFont() {
+        return this.minecraft.font;
+    }
+
+    public void drawContents(MatrixStack poseStack) {
         if (DeathStats.getInstance().isVisible()) {
             int width = Minecraft.getInstance().getWindow().getGuiScaledWidth();
             int height = Minecraft.getInstance().getWindow().getGuiScaledHeight();
-
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 
             int current = stats.getCurrent();
             int max = stats.getMax();
@@ -41,7 +48,7 @@ public class DeathOverlayGui extends Gui {
             String line2Left = "Max: ";
             String line2Right = String.valueOf(max);
 
-            Font f = getFont();
+            FontRenderer f = getFont();
             int leftWidth = Math.max(f.width(line1Left), f.width(line2Left));
             int rightWidth = Math.max(f.width(line1Right), f.width(line2Right));
             // Max width, can ignore high score as Death Counter is longer

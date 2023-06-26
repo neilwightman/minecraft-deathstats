@@ -3,19 +3,20 @@ package de.wightman.minecraft.deathstats;
 import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import de.wightman.minecraft.deathstats.gui.HudClientEvent;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
+import net.minecraft.client.audio.SimpleSound;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundEvent;
+import net.minecraft.util.Util;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.IExtensionPoint;
+import net.minecraftforge.fml.ExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -25,6 +26,7 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.File;
 
@@ -49,7 +51,10 @@ public class DeathStats {
 
     public DeathStats() {
         //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
-        ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "ANY", (remote, isServer) -> true));
+        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST, ()->Pair.of(
+                                ()->"anything. i don't care", // if i'm actually on the server, this string is sent but i'm a client only mod, so it won't be
+                                (remoteversionstring,networkbool)->networkbool // i accept anything from the server, by returning true if it's asking about the server
+                        ));
 
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> this::init);
 
@@ -107,7 +112,7 @@ public class DeathStats {
             LOGGER.info("deathstats max={}, current={} visible={}", max, current, visible);
         } catch (MVStoreException mvStoreException) {
             LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), mvStoreException);
-            TextComponent m = new TextComponent("ERROR: Cannot open " + deathsFile.getAbsolutePath());
+            TextComponent m = new StringTextComponent("ERROR: Cannot open " + deathsFile.getAbsolutePath());
             Minecraft.getInstance().player.sendMessage(m, Util.NIL_UUID);
         }
     }
@@ -182,7 +187,7 @@ public class DeathStats {
             return;
         }
 
-        SimpleSoundInstance ssi = SimpleSoundInstance.forUI(s, 1.0f);
+        SimpleSound ssi = SimpleSound.forUI(s, 1.0f);
 
         Minecraft.getInstance().getSoundManager().playDelayed(ssi, 1);
     }

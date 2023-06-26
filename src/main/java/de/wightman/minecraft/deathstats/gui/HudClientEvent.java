@@ -13,9 +13,11 @@ public class HudClientEvent
 
     @SubscribeEvent
     public static void onOverlayRender(RenderGameOverlayEvent event) {
-        if (gui == null) {
-            gui = new DeathOverlayGui(Minecraft.getInstance());
+        if (event.getType() == RenderGameOverlayEvent.ElementType.ALL) {
+            if (gui == null) {
+                gui = new DeathOverlayGui(Minecraft.getInstance());
+            }
+            gui.drawContents(event.getMatrixStack());
         }
-        gui.render(event.getMatrixStack());
     }
 }

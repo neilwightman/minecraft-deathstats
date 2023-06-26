@@ -1,10 +1,12 @@
 package de.wightman.minecraft.deathstats;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
-import net.minecraft.Util;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.Commands;
+import net.minecraft.util.Util;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextComponent;
+import net.minecraft.util.text.TextComponentUtils;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.slf4j.Logger;
@@ -60,26 +62,26 @@ public class DeathStatsClientCommands {
         );
     }
 
-    private static int set_max(final CommandSourceStack source, String max) {
+    private static int set_max(final CommandSource source, String max) {
         LOGGER.info("set_max {}", max);
         DeathStats.getInstance().setMax(Integer.parseInt(max));
         return 1;
     }
 
-    private static int set_current(final CommandSourceStack source, String current) {
+    private static int set_current(final CommandSource source, String current) {
         LOGGER.info("set_current {}", current);
         DeathStats.getInstance().setCurrent(Integer.parseInt(current));
         return 1;
     }
 
-    private static int set_visible(final CommandSourceStack source, String current) {
+    private static int set_visible(final CommandSource source, String current) {
         LOGGER.info("set_visible {}", current);
         DeathStats.getInstance().setVisible(Boolean.parseBoolean(current));
         return 1;
     }
 
-    private static int help(final CommandSourceStack source) {
-        TextComponent m = new TextComponent("""
+    private static int help(final CommandSource source) {
+        TextComponent m = new StringTextComponent("""
                 §lDeathStats§r by §6mnkybrdr§r
 
                 §6/deathstats§f set current §2<value>§f - §oset current value§r
@@ -96,12 +98,12 @@ public class DeathStatsClientCommands {
         return 0;
     }
 
-    private static int get_all(final CommandSourceStack source) {
+    private static int get_all(final CommandSource source) {
         int current = DeathStats.getInstance().getCurrent();
         int max = DeathStats.getInstance().getMax();
         boolean highScore = DeathStats.getInstance().isHighScore();
         boolean visible = DeathStats.getInstance().isVisible();
-        TextComponent m = new TextComponent("""
+        TextComponent m = new StringTextComponent("""
                 {
                      §4current§f: §9%s§f,
                      §4max§f: §9%s§f,
@@ -113,38 +115,38 @@ public class DeathStatsClientCommands {
         return 0;
     }
 
-    private static int get_current(final CommandSourceStack source) {
-        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getCurrent()));
+    private static int get_current(final CommandSource source) {
+        TextComponent m = new StringTextComponent(String.valueOf(DeathStats.getInstance().getCurrent()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
 
-    private static int get_max(final CommandSourceStack source) {
-        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getMax()));
+    private static int get_max(final CommandSource source) {
+        TextComponent m = new StringTextComponent(String.valueOf(DeathStats.getInstance().getMax()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
 
-    private static int get_highscore(final CommandSourceStack source) {
-        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().isHighScore()));
+    private static int get_highscore(final CommandSource source) {
+        TextComponent m = new StringTextComponent(String.valueOf(DeathStats.getInstance().isHighScore()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
 
-    private static int debug(final CommandSourceStack source) {
-        TextComponent m = new TextComponent(String.valueOf(DeathStats.getInstance().getDeathsFile()));
+    private static int debug(final CommandSource source) {
+        TextComponent m = new StringTextComponent(String.valueOf(DeathStats.getInstance().getDeathsFile()));
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         get_all(source);
         return 0;
     }
 
-    private static int reset(final CommandSourceStack source) {
+    private static int reset(final CommandSource source) {
         set_current(source, "0");
         set_max(source, "0");
         return 0;
     }
 
-    private static int sound(final CommandSourceStack source) {
+    private static int sound(final CommandSource source) {
         DeathStats.getInstance().playHighScoreSound();
         return 0;
     }

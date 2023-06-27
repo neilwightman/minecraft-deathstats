@@ -1,8 +1,8 @@
 package de.wightman.minecraft.deathstats;
 
 import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
+import de.wightman.minecraft.deathstats.gui.DeathOverlayGui;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
-import de.wightman.minecraft.deathstats.gui.HudClientEvent;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -10,6 +10,7 @@ import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.gui.OverlayRegistry;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -28,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
-@Mod("deathstats")
+@Mod(DeathStats.MOD_ID)
 public class DeathStats {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathStats.class);
@@ -48,12 +49,12 @@ public class DeathStats {
 
 
     public DeathStats() {
+        INSTANCE = this;
+
         //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
         ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "ANY", (remote, isServer) -> true));
 
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> this::init);
-
-        INSTANCE = this;
     }
 
     private void init() {
@@ -67,9 +68,9 @@ public class DeathStats {
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         // Client side commands
-        MinecraftForge.EVENT_BUS.register(new DeathStatsClientCommands());
+        MinecraftForge.EVENT_BUS.register(ClientCommands.class);
         // Hud gui
-        MinecraftForge.EVENT_BUS.register(HudClientEvent.class);
+        OverlayRegistry.registerOverlayTop("deathstats_hud", new DeathOverlayGui());
 
         DeathSoundEvents.registerSoundEvent(eventBus);
     }

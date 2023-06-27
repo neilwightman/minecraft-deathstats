@@ -15,13 +15,11 @@ buildscript {
 plugins {
     id 'eclipse'
     id 'maven-publish'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'  // nwightma
-apply plugin: 'com.github.johnrengelman.shadow'
 
-version = '1.1.1'
+version = '1.2.0'
 group = 'de.wightman.minecraft.deathstats' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'deathstats'
 
@@ -168,6 +166,12 @@ configurations {
     shade
 }
 
+jarJar.enable()
+
+tasks.named('jarJar') {
+    classifier = '1.19.2-forge';
+}
+
 dependencies {
     // Specify the version of Minecraft to use. If this is any group other than 'net.minecraft', it is assumed
     // that the dep is a ForgeGradle 'patcher' dependency, and its patches will be applied.
@@ -187,7 +191,9 @@ dependencies {
 
     // https://mvnrepository.com/artifact/com.h2database/h2-mvstore
     implementation 'com.h2database:h2-mvstore:2.1.214'
-    shade group: 'com.h2database', name: 'h2-mvstore', version: '2.1.214'
+    jarJar(group: 'com.h2database', name: 'h2-mvstore', version: '[2.1,2.2)')
+
+    minecraftLibrary 'com.h2database:h2-mvstore:2.1.214'
 
     // For more info...
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
@@ -212,22 +218,6 @@ jar {
     classifier = '1.18.2-forge'
 }
 
-tasks.shadowJar.dependsOn('reobfJar')
-
-shadowJar {
-    minimize {}
-    classifier = '1.18.2-forge'
-    configurations = [project.configurations.shade]
-    // Cant minimize and relocate see
-    // https://github.com/johnrengelman/shadow/issues/610
-    // https://github.com/johnrengelman/shadow/pull/796
-    // TOTO try to make a relocated subproject for now
-    // relocate 'org.jfree', "${project.group}.org.jfree" // ensure repackaged packages have unique names
-}
-
-reobf {
-    shadowJar { }
-}
 
 // Example configuration to allow publishing using the maven-publish plugin
 // This is the preferred method to reobfuscate your jar file

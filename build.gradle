@@ -169,7 +169,7 @@ configurations {
 jarJar.enable()
 
 tasks.named('jarJar') {
-    classifier = '1.19.2-forge';
+    classifier = '1.18.2-forge';
 }
 
 dependencies {
@@ -224,6 +224,8 @@ jar {
 jar.finalizedBy('reobfJar')
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
 // publish.dependsOn('reobfJar')
+
+reobf { jarJar { } }
 
 publishing {
     publications {

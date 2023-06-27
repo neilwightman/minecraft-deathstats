@@ -14,6 +14,12 @@ or ```/deathstats reset```
 
 ![alt text](images/deathstats_logo_1024.png)
 
+## Change Log
+
+ * 1.2.0 - Remove shade and use jarjar.   Use IGuiOverlay correctly to stop drawing the hud too many times.
+ * 1.1.0 - Simple death stats hud which tracks deaths and can be reset. I.e. it can be used to track deaths per hour, per day, per stream etc.
+ * 1.0.0 - first version with a graph, no hud and using mixins
+
 ## TODO
  * Store each death over time and graph it (only for current deaths counter)
  * Add fabric support

@@ -48,18 +48,18 @@ public class DeathOverlayGui extends AbstractGui {
             String line2Left = "Max: ";
             String line2Right = String.valueOf(max);
 
-            FontRenderer f = getFont();
-            int leftWidth = Math.max(f.width(line1Left), f.width(line2Left));
-            int rightWidth = Math.max(f.width(line1Right), f.width(line2Right));
+            FontRenderer font = getFont();
+            int leftWidth = Math.max(font.width(line1Left), font.width(line2Left));
+            int rightWidth = Math.max(font.width(line1Right), font.width(line2Right));
             // Max width, can ignore high score as Death Counter is longer
-            int totalWidth = Math.max(leftWidth + rightWidth + 5, f.width(title));
+            int totalWidth = Math.max(leftWidth + rightWidth + 5, font.width(title));
 
             // Title and highscore text
             if (stats.isHighScore()) {
-                drawString(poseStack, this.getFont(), title, width - totalWidth - 10, (height / 2) - f.lineHeight * 2, Integer.parseInt(WHITE, 16));
-                drawString(poseStack, this.getFont(), highScore, width - totalWidth - 10, (height / 2) - f.lineHeight, Integer.parseInt(GREEN, 16));
+                drawString(poseStack, this.getFont(), title, width - totalWidth - 10, (height / 2) - font.lineHeight * 2, Integer.parseInt(WHITE, 16));
+                drawString(poseStack, this.getFont(), highScore, width - totalWidth - 10, (height / 2) - font.lineHeight, Integer.parseInt(GREEN, 16));
             } else {
-                drawString(poseStack, this.getFont(), title, width - totalWidth - 10, (height / 2) - f.lineHeight, Integer.parseInt(WHITE, 16));
+                drawString(poseStack, this.getFont(), title, width - totalWidth - 10, (height / 2) - font.lineHeight, Integer.parseInt(WHITE, 16));
             }
 
             // 50% = yellow
@@ -78,8 +78,8 @@ public class DeathOverlayGui extends AbstractGui {
             drawString(poseStack, this.getFont(), line1Right, width - rightWidth - 10, (height / 2), Integer.parseInt(color, 16));
 
             // Max
-            drawString(poseStack, this.getFont(), line2Left, width - totalWidth - 10, (height / 2) + f.lineHeight, Integer.parseInt(color, 16));
-            drawString(poseStack, this.getFont(), line2Right, width - rightWidth - 10, (height / 2) + f.lineHeight, Integer.parseInt(color, 16));
+            drawString(poseStack, this.getFont(), line2Left, width - totalWidth - 10, (height / 2) + font.lineHeight, Integer.parseInt(color, 16));
+            drawString(poseStack, this.getFont(), line2Right, width - rightWidth - 10, (height / 2) + font.lineHeight, Integer.parseInt(color, 16));
         }
     }
 }

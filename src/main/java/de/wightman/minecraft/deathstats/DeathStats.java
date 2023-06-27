@@ -21,19 +21,19 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVStoreException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.File;
 
-@Mod("deathstats")
+@Mod(DeathStats.MOD_ID)
 public class DeathStats {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DeathStats.class);
+    private static final Logger LOGGER = LogManager.getLogger();
 
     public static final String MOD_ID = "deathstats";
 
@@ -72,7 +72,7 @@ public class DeathStats {
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         // Client side commands
-        MinecraftForge.EVENT_BUS.register(new DeathStatsClientCommands());
+        MinecraftForge.EVENT_BUS.register(ClientCommands.class);
         // Hud gui
         MinecraftForge.EVENT_BUS.register(HudClientEvent.class);
 

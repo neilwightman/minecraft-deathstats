@@ -6,18 +6,17 @@ import net.minecraft.command.Commands;
 import net.minecraft.util.Util;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextComponent;
-import net.minecraft.util.text.TextComponentUtils;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-public class DeathStatsClientCommands {
+public final class ClientCommands {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DeathStatsClientCommands.class);
+    private static final Logger LOGGER = LogManager.getLogger();
 
     @SubscribeEvent
-    public void init(final RegisterCommandsEvent event) {
+    public static void init(final RegisterCommandsEvent event) {
         // Work around for CCI
         // https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
         // CCI runs the commands as though it was running on the server
@@ -81,19 +80,18 @@ public class DeathStatsClientCommands {
     }
 
     private static int help(final CommandSource source) {
-        TextComponent m = new StringTextComponent("""
-                §lDeathStats§r by §6mnkybrdr§r
-
-                §6/deathstats§f set current §2<value>§f - §oset current value§r
-                §6/deathstats§f set max §2<value>§f - §oset max value§r
-                §6/deathstats§f set visible §2<true|value>§f - §ohides or shows the overlay§r
-                §6/deathstats§f get current - §oget current value§r
-                §6/deathstats§f get max - §oget max value§r
-                §6/deathstats§f get highscore - §ohas the highscore hit§r
-                §6/deathstats§f debug - §oshows debug information§r
-                §6/deathstats§f sound - §oplays high score sound§r
-                §6/deathstats§f reset - §osets max and current to 0§r
-                """);
+        TextComponent m = new StringTextComponent(
+                "§lDeathStats§r by §6mnkybrdr§r"+
+                ""+
+                "§6/deathstats§f set current §2<value>§f - §oset current value§r"+
+                "§6/deathstats§f set max §2<value>§f - §oset max value§r"+
+                "§6/deathstats§f set visible §2<true|value>§f - §ohides or shows the overlay§r"+
+                "§6/deathstats§f get current - §oget current value§r"+
+                "§6/deathstats§f get max - §oget max value§r"+
+                "§6/deathstats§f get highscore - §ohas the highscore hit§r"+
+                "§6/deathstats§f debug - §oshows debug information§r"+
+                "§6/deathstats§f sound - §oplays high score sound§r"+
+                "§6/deathstats§f reset - §osets max and current to 0§r");
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }
@@ -103,14 +101,13 @@ public class DeathStatsClientCommands {
         int max = DeathStats.getInstance().getMax();
         boolean highScore = DeathStats.getInstance().isHighScore();
         boolean visible = DeathStats.getInstance().isVisible();
-        TextComponent m = new StringTextComponent("""
-                {
-                     §4current§f: §9%s§f,
-                     §4max§f: §9%s§f,
-                     §4highScore§f: §2%s§f
-                     §4visible§f: §2%s§f
-                }
-                """.formatted(current, max, highScore, visible));
+        TextComponent m = new StringTextComponent(
+                "{"+
+                     "    §4current§f: §9"+current+"§f,"+
+                     "    §4max§f: §9"+max+"§f,"+
+                     "    §4highScore§f: §2"+highScore+"§f,"+
+                     "    §4visible§f: §2"+visible+"§f"+
+                "}");
         source.getEntity().sendMessage(m, Util.NIL_UUID);
         return 0;
     }

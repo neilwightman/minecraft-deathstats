@@ -2,7 +2,6 @@ package de.wightman.minecraft.deathstats;
 
 import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
-import de.wightman.minecraft.deathstats.gui.HudClientEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -30,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
-@Mod("deathstats")
+@Mod(DeathStats.MOD_ID)
 public class DeathStats {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathStats.class);
@@ -69,9 +68,9 @@ public class DeathStats {
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         // Client side commands
-        MinecraftForge.EVENT_BUS.register(new DeathStatsClientCommands());
+        MinecraftForge.EVENT_BUS.register(ClientCommands.class);
         // Hud gui
-        MinecraftForge.EVENT_BUS.register(HudClientEvent.class);
+        MinecraftForge.EVENT_BUS.register(ClientSetupHandler.class);
 
         DeathSoundEvents.registerSoundEvent(eventBus);
     }

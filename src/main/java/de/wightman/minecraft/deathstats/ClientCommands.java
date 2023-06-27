@@ -10,12 +10,12 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeathStatsClientCommands {
+public final class ClientCommands {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DeathStatsClientCommands.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ClientCommands.class);
 
     @SubscribeEvent
-    public void init(final RegisterCommandsEvent event) {
+    public static void init(final RegisterCommandsEvent event) {
         // Work around for CCI
         // https://github.com/iChun/ContentCreatorIntegration-IssuesAndDocumentation/issues/89
         // CCI runs the commands as though it was running on the server

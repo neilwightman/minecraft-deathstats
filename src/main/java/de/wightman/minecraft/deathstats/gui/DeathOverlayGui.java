@@ -4,11 +4,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import de.wightman.minecraft.deathstats.DeathStats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraftforge.client.gui.overlay.ForgeGui;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
-public class DeathOverlayGui extends GuiComponent implements IGuiOverlay {
+public class DeathOverlayGui extends GuiGraphics implements IGuiOverlay {
 
     private static final DeathStats stats = DeathStats.getInstance();
 
@@ -19,12 +20,13 @@ public class DeathOverlayGui extends GuiComponent implements IGuiOverlay {
     public static final String GREEN = "32CD32";
     public static final String YELLOW = "FFFF33";
 
-    public DeathOverlayGui() {
-
+    public DeathOverlayGui(Minecraft minecraft, MultiBufferSource.BufferSource bufferSource) {
+        super(minecraft, bufferSource);
     }
 
+
     @Override
-    public void render(ForgeGui gui, PoseStack poseStack, float partialTick, int screenWidth, int screenHeight) {
+    public void render(ForgeGui gui, GuiGraphics guiGraphics, float partialTick, int screenWidth, int screenHeight) {
         if (DeathStats.getInstance().isVisible()) {
             int width = Minecraft.getInstance().getWindow().getGuiScaledWidth();
             int height = Minecraft.getInstance().getWindow().getGuiScaledHeight();
@@ -47,10 +49,10 @@ public class DeathOverlayGui extends GuiComponent implements IGuiOverlay {
 
             // Title and highscore text
             if (stats.isHighScore()) {
-                drawString(poseStack, font, title, width - totalWidth - 10, (height / 2) - font.lineHeight * 2, Integer.parseInt(WHITE, 16));
-                drawString(poseStack, font, highScore, width - totalWidth - 10, (height / 2) - font.lineHeight, Integer.parseInt(GREEN, 16));
+                drawString(font, title, width - totalWidth - 10, (height / 2) - font.lineHeight * 2, Integer.parseInt(WHITE, 16));
+                drawString(font, highScore, width - totalWidth - 10, (height / 2) - font.lineHeight, Integer.parseInt(GREEN, 16));
             } else {
-                drawString(poseStack, font, title, width - totalWidth - 10, (height / 2) - font.lineHeight, Integer.parseInt(WHITE, 16));
+                drawString(font, title, width - totalWidth - 10, (height / 2) - font.lineHeight, Integer.parseInt(WHITE, 16));
             }
 
             // 50% = yellow
@@ -65,12 +67,12 @@ public class DeathOverlayGui extends GuiComponent implements IGuiOverlay {
             else if (percent >= 0.50) color = YELLOW;
 
             // current
-            drawString(poseStack, font, line1Left, width - totalWidth - 10, (height / 2), Integer.parseInt(color, 16));
-            drawString(poseStack, font, line1Right, width - rightWidth - 10, (height / 2), Integer.parseInt(color, 16));
+            drawString(font, line1Left, width - totalWidth - 10, (height / 2), Integer.parseInt(color, 16));
+            drawString(font, line1Right, width - rightWidth - 10, (height / 2), Integer.parseInt(color, 16));
 
             // Max
-            drawString(poseStack, font, line2Left, width - totalWidth - 10, (height / 2) + font.lineHeight, Integer.parseInt(color, 16));
-            drawString(poseStack, font, line2Right, width - rightWidth - 10, (height / 2) + font.lineHeight, Integer.parseInt(color, 16));
+            drawString(font, line2Left, width - totalWidth - 10, (height / 2) + font.lineHeight, Integer.parseInt(color, 16));
+            drawString(font, line2Right, width - rightWidth - 10, (height / 2) + font.lineHeight, Integer.parseInt(color, 16));
         }
     }
 

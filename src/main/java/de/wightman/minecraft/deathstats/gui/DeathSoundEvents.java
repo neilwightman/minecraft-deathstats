@@ -18,7 +18,7 @@ public class DeathSoundEvents {
     public static final RegistryObject<SoundEvent> HIGH_SCORE = registrySoundEvent("high_score");
 
     private static RegistryObject<SoundEvent> registrySoundEvent(String name) {
-        return SOUND_EVENTS.register(name, () -> new SoundEvent(new ResourceLocation(DeathStats.MOD_ID, name)));
+        return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(DeathStats.MOD_ID, name)));
     }
 
     public static void registerSoundEvent(IEventBus eventBus) {

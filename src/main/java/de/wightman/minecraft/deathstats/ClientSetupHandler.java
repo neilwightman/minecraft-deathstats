@@ -1,6 +1,7 @@
 package de.wightman.minecraft.deathstats;
 
 import de.wightman.minecraft.deathstats.gui.DeathOverlayGui;
+import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -14,6 +15,6 @@ public final class ClientSetupHandler {
 
     @SubscribeEvent
     public static void registerGameOverlays(final RegisterGuiOverlaysEvent event) {
-        event.registerAboveAll("deathstats_hud", new DeathOverlayGui());
+        event.registerAboveAll("deathstats_hud", new DeathOverlayGui(Minecraft.getInstance(), Minecraft.getInstance().renderBuffers().bufferSource()));
     }
 }

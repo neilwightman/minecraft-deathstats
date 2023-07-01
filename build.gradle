@@ -140,8 +140,12 @@ configurations {
 
 jarJar.enable()
 
-tasks.named('jarJar') {
+tasks.jarJar.configure {
+    archiveClassifier = ''
+}
 
+tasks.named('jarJar') {
+    dependsOn "reobfJar"
 }
 
 dependencies {

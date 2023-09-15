@@ -1,6 +1,7 @@
 package de.wightman.minecraft.deathstats;
 
 import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
+import de.wightman.minecraft.deathstats.gui.ConfigScreen;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -11,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -47,7 +49,6 @@ public class DeathStats {
     private static final String KEY_CURRENT = "current_session_deaths";
     private static final String KEY_IS_VISIBLE = "is_visible";
 
-
     public DeathStats() {
         //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
         ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "ANY", (remote, isServer) -> true));
@@ -63,16 +64,15 @@ public class DeathStats {
         String home = System.getProperty("user.home");
         deathsFile = new File(home, "minecraft_deaths.dat"); // FIXED
 
-        IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
-        // Client side commands
-        MinecraftForge.EVENT_BUS.register(ClientCommands.class);
-        // Hud gui
-        MinecraftForge.EVENT_BUS.register(ClientSetupHandler.class);
+
+        IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         DeathSoundEvents.registerSoundEvent(eventBus);
+
+        ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory.class,
+                () -> new ConfigScreenHandler.ConfigScreenFactory((minecraft, screen) -> new ConfigScreen(screen)));
     }
 
     public static DeathStats getInstance() {

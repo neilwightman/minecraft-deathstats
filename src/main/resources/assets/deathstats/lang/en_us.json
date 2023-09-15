@@ -1,6 +1,11 @@
 {
   "deathstats.name": "Death Stats",
 
-  // Sound subtitles
-  "deathstats.highscore.subtitle": "New High Death Score"
+  "deathstats.highscore.subtitle": "New High Death Score",
+
+  "deathstats.configuration.title": "Death Stats",
+  "deathstats.configuration.moreInfo": "More info...",
+
+  "deathstats.key.name" : "Open death chart",
+  "deathstats.key.category": "Death Stats"
 }

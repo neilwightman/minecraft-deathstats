@@ -5,11 +5,16 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static de.wightman.minecraft.deathstats.DeathStats.MOD_ID;
+
+@Mod.EventBusSubscriber(modid = MOD_ID, value = Dist.CLIENT)
 public final class ClientCommands {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCommands.class);

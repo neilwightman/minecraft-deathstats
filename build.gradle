@@ -167,21 +167,18 @@ dependencies {
     // The group id is ignored when searching -- in this case, it is "blank"
     // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
 
-    // For more info:
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
-    //implementation group: 'org.jfree', name: 'jfreechart', version: '1.5.3'
-    //shade group: 'org.jfree', name: 'jfreechart', version: '1.5.3'
+//    implementation group: 'org.jfree', name: 'jfreechart', version: '1.5.3'
+//    jarJar(group: 'org.jfree', name: 'jfreechart', version: '[1.5.3,1.5.4)')
+//    minecraftLibrary 'org.jfree:jfreechart:1.5.3'
 
     // https://mvnrepository.com/artifact/com.h2database/h2-mvstore
-    implementation 'com.h2database:h2-mvstore:2.1.214'
-    jarJar(group: 'com.h2database', name: 'h2-mvstore', version: '[2.1,2.2)')
+//    implementation 'com.h2database:h2-mvstore:2.1.214'
+//    jarJar(group: 'com.h2database', name: 'h2-mvstore', version: '[2.1,2.2)')
+//    minecraftLibrary 'com.h2database:h2-mvstore:2.1.214'
 
-    minecraftLibrary 'com.h2database:h2-mvstore:2.1.214'
-
-    // For more info...
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    // isnt maven jar, no meta data
+    minecraftLibrary jarJar(group: "org.jfree", name: "jfreechart", version: "[1.5.4,1.5.5)") { transitive = false }
+    minecraftLibrary jarJar(group: "com.h2database", name: "h2-mvstore", version: "[2.1,2.2)") { transitive = false }
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }

@@ -9,8 +9,11 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import org.h2.mvstore.MVMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 import static de.wightman.minecraft.deathstats.DeathStats.MOD_ID;
 
@@ -56,6 +59,9 @@ public final class ClientCommands {
                 .then(Commands.literal("help")
                         .executes(ctx -> help(ctx.getSource()))
                 ).then(Commands.literal("debug")
+                        .then(Commands.literal("death_log")
+                            .executes(ctx-> dump_death_log(ctx.getSource()))
+                         )
                         .executes(ctx -> debug(ctx.getSource()))
                 ).then(Commands.literal("sound")
                         .executes(ctx -> sound(ctx.getSource()))
@@ -151,6 +157,18 @@ public final class ClientCommands {
 
     private static int sound(final CommandSourceStack source) {
         DeathStats.getInstance().playHighScoreSound();
+        return 0;
+    }
+
+    private static int dump_death_log(final CommandSourceStack source) {
+        MVMap<Long, String> log = DeathStats.getInstance().getDeathLog();
+
+        for (Map.Entry<Long, String> entry: log.entrySet()) {
+            String json = entry.getValue();
+            DeathRecord dr = DeathRecord.fromString(json);
+            LOGGER.info("deathlog {} {} {} {}", entry.getKey(), dr.deathMessage, dr.killedByKey, dr.killedByStr);
+        }
+
         return 0;
     }
 }

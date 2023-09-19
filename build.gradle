@@ -181,6 +181,19 @@ dependencies {
     minecraftLibrary jarJar(group: "com.h2database", name: "h2-mvstore", version: "[2.1,2.2)") { transitive = false }
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+
+    maxHeapSize = '1G'
+
+    testLogging {
+        events "passed"
+    }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

@@ -4,10 +4,14 @@ import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.ConfigScreen;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentContents;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.contents.LiteralContents;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
@@ -30,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Optional;
 
 @Mod(DeathStats.MOD_ID)
 public class DeathStats {
@@ -42,12 +47,13 @@ public class DeathStats {
 
     private File deathsFile;
     private MVStore store;
-    private MVMap<String, Object> map;
+    private MVMap<String, Object> properties;
     private boolean isHighScore = false;
 
     private static final String KEY_MAX = "session_death_max";
     private static final String KEY_CURRENT = "current_session_deaths";
     private static final String KEY_IS_VISIBLE = "is_visible";
+    private MVMap<Long, String> deathLog; // cannot store deathrecord classes as mv2 jar in jar class loader cant access our classes.
 
     public DeathStats() {
         //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
@@ -86,27 +92,29 @@ public class DeathStats {
             store = MVStore.open(deathsFile.getAbsolutePath());
 
             // Basic key value map
-            map = store.openMap("minecraft_deaths"); // FIXED
+            properties = store.openMap("minecraft_deaths"); // FIXED
             // allow player to clear and define what a current session is.
-            Integer current = (Integer)map.putIfAbsent(KEY_CURRENT, 0);
+            Integer current = (Integer) properties.putIfAbsent(KEY_CURRENT, 0);
             if (current == null) {
                 current = 0;
             }
 
-            Integer max = (Integer)map.putIfAbsent(KEY_MAX, 0);
+            Integer max = (Integer) properties.putIfAbsent(KEY_MAX, 0);
             if (max == null) {
                 max = 0;
             }
 
-            Boolean visible = (Boolean) map.putIfAbsent(KEY_IS_VISIBLE, true);
+            Boolean visible = (Boolean) properties.putIfAbsent(KEY_IS_VISIBLE, true);
             if (visible == null) {
                 visible = true;
             }
 
             isHighScore = false;
 
+            deathLog = store.openMap("minecraft_deaths_log"); // FIXED
+
             LOGGER.debug("startSession {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level);
-            LOGGER.info("deathstats max={}, current={} visible={}", max, current, visible);
+            LOGGER.info("deathstats max={}, current={} visible={} log={}", max, current, visible, deathLog.size());
         } catch (MVStoreException mvStoreException) {
             LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), mvStoreException);
             MutableComponent c = Component.literal("ERROR: Cannot open " + deathsFile.getAbsolutePath());
@@ -121,44 +129,45 @@ public class DeathStats {
         }
 
         store = null;
-        map = null;
+        properties = null;
+        deathLog = null;
     }
 
     public int getMax() {
-        if (map == null) return -1;
-        return (Integer) map.get(KEY_MAX);
+        if (properties == null) return -1;
+        return (Integer) properties.get(KEY_MAX);
     }
 
     public int getCurrent() {
-        if (map == null) return - 1;
-        return (Integer) map.get(KEY_CURRENT);
+        if (properties == null) return - 1;
+        return (Integer) properties.get(KEY_CURRENT);
     }
 
     public void setMax(final int max) {
-        if (map == null) return;
-        map.put(KEY_MAX, max);
+        if (properties == null) return;
+        properties.put(KEY_MAX, max);
     }
 
     public boolean isVisible() {
-        if (map == null) return true;
-        return (Boolean) map.get(KEY_IS_VISIBLE);
+        if (properties == null) return true;
+        return (Boolean) properties.get(KEY_IS_VISIBLE);
     }
 
     public void setVisible(boolean visible) {
-        if (map == null) return;
-        map.put(KEY_IS_VISIBLE, visible);
+        if (properties == null) return;
+        properties.put(KEY_IS_VISIBLE, visible);
     }
 
 
     public void setCurrent(final int current) {
-        if (map == null) return;
+        if (properties == null) return;
 
-        map.put(KEY_CURRENT, current);
+        properties.put(KEY_CURRENT, current);
 
-        Integer max = (Integer) map.get(KEY_MAX);
+        Integer max = (Integer) properties.get(KEY_MAX);
 
         if (current > max) {
-            map.put(KEY_MAX, current);
+            properties.put(KEY_MAX, current);
 
             if (!isHighScore) {
                 if (isVisible()) playHighScoreSound();
@@ -201,29 +210,90 @@ public class DeathStats {
 
     @SubscribeEvent
     public void onJoin(ClientPlayerNetworkEvent.LoggingIn event) {
+        LOGGER.info("onJoin({})", event.getPlayer());
         startSession();
     }
 
     @SubscribeEvent
     public void onLeave(ClientPlayerNetworkEvent.LoggingOut event) {
+        LOGGER.info("onLeave({})", event.getPlayer());
         endSession();
     }
 
-    @SubscribeEvent
-    public void onRespawn(final ClientPlayerNetworkEvent.Clone event) {
-        if (event.getPlayer() == Minecraft.getInstance().player) {
-            final LocalPlayer lp = event.getOldPlayer();
-            if (lp.getRemovalReason() == Entity.RemovalReason.KILLED) {
+    private void increaseCounter() {
+        if (properties == null) return;
 
-                if (map == null) return;
+        // update deaths
+        Integer current = (Integer) properties.get(KEY_CURRENT);
+        current += 1;
 
-                // update deaths
-                Integer current = (Integer) map.get(KEY_CURRENT);
-                current += 1;
+        LOGGER.debug("death current={}", current);
 
-                LOGGER.debug("death current={}", current);
+        setCurrent(current);
+    }
 
-                setCurrent(current);
+    private void logDeath(String deathMessageKey, String killedByKey, String killedByName) {
+        if (deathLog == null) return;
+
+        LOGGER.info("logDeath({},{},{})", deathMessageKey, killedByKey, killedByName);
+
+        DeathRecord dr = new DeathRecord(deathMessageKey, killedByKey, killedByName);
+        deathLog.append(System.currentTimeMillis(), dr.toJsonString());
+    }
+
+    public MVMap<Long, String> getDeathLog() {
+        return deathLog;
+    }
+
+    public void handlePlayerCombatKill(ClientboundPlayerCombatKillPacket clientPlayerCombatKillPacket) {
+        LOGGER.debug("handlePlayerCombatKill({})", clientPlayerCombatKillPacket);
+        Entity entity = Minecraft.getInstance().level.getEntity(clientPlayerCombatKillPacket.getPlayerId());
+        // Only process LocalPlayer
+        if (entity == Minecraft.getInstance().player) {
+            Component msg = clientPlayerCombatKillPacket.getMessage();
+            ComponentContents contents = msg.getContents();
+            if (contents instanceof TranslatableContents tc) {
+                StringBuilder str = new StringBuilder();
+                tc.visit((part) -> {
+                    str.append(part);
+                    return Optional.empty();
+                });
+
+                LOGGER.info("Death {} {}", tc, str.toString());
+
+                String key = tc.getKey();
+                if (key.startsWith("death.")) {
+                    Object killedBy = null;
+
+                    Object[] args = tc.getArgs();
+
+                    if (key.endsWith(".player")
+                        || key.endsWith(".item")) {
+                        killedBy = args[1];  // %2
+                    }
+
+                    if (args.length >= 2) {
+                        killedBy= args[1];  // %2 on all death. messages is the player or mob name
+                    }
+
+                    LOGGER.debug("{} {}", key, killedBy);
+                    String killedByKey = null;  // localised key of item which killed the player
+                    String killedByStr = null;  // the name of the mob for named mobs and players
+
+                    if (killedBy instanceof MutableComponent mc) {
+                        ComponentContents killedByContents = mc.getContents();
+                        if (killedByContents instanceof TranslatableContents killedByTc) {
+                            killedByKey = killedByTc.getKey();
+                        }
+                        if (killedByContents instanceof LiteralContents killedByLc) {
+                            killedByStr = killedByLc.text();
+                        }
+                    }
+
+                    logDeath(key, killedByKey, killedByStr);
+                }
+
+                increaseCounter();
             }
         }
     }

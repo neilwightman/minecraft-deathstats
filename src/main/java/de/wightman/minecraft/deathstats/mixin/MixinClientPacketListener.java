@@ -1,6 +1,6 @@
 package de.wightman.minecraft.deathstats.mixin;
 
-import com.mojang.logging.LogUtils;
+import de.wightman.minecraft.deathstats.DeathStats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -31,23 +31,15 @@ public class MixinClientPacketListener {
     private ClientLevel level;
 
     @Shadow
+    @Final
     private static Logger LOGGER;
 
     @Inject(at = @At("HEAD"),
-            method = "handlePlayerCombatKill",
-            cancellable = true)
+            method = "handlePlayerCombatKill")
     public void handlePlayerCombatKill(ClientboundPlayerCombatKillPacket clientPlayerCombatKillPacket, CallbackInfo callback) {
-        // Run on network thread only
-        if ( !minecraft.isSameThread() ) {
-            Entity entity = this.level.getEntity(clientPlayerCombatKillPacket.getPlayerId());
-            // Only process LocalPlayer
-            if (entity == this.minecraft.player) {
-                Component msg = clientPlayerCombatKillPacket.getMessage();
-                ComponentContents contents = msg.getContents();
-                if (contents instanceof TranslatableContents tc) {
-                    LOGGER.info("Death {} {}", entity.getName(), tc.toString());
-                }
-            }
+        // Run on client thread only
+        if ( minecraft.isSameThread() ) {
+            DeathStats.getInstance().handlePlayerCombatKill(clientPlayerCombatKillPacket);
         }
     }
 

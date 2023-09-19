@@ -2,7 +2,7 @@ package de.wightman.minecraft.deathstats.gui;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
-import de.wightman.minecraft.deathstats.DeathRecord;
+import com.mojang.math.Axis;
 import de.wightman.minecraft.deathstats.DeathStats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -45,7 +45,6 @@ public class ChartScreen extends Screen {
     private final ResourceLocation borderLocation;
     private DynamicTexture texture;
     private java.awt.Font minecraftFont = null;
-    private java.awt.Font minecraftSmallFont = null;
 
     public ChartScreen() {
         super(Component.translatable("deathstats.name"));
@@ -53,8 +52,7 @@ public class ChartScreen extends Screen {
         this.borderLocation = new ResourceLocation("deathstats","textures/gui/borders.png");
         try {
             java.awt.Font customFont = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, ChartScreen.class.getResourceAsStream("/assets/deathstats/font/Minecraft.ttf"));
-            this.minecraftFont = customFont.deriveFont(18f);
-            this.minecraftSmallFont = customFont.deriveFont(12f);
+            this.minecraftFont = customFont.deriveFont(14f);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -126,8 +124,39 @@ public class ChartScreen extends Screen {
             guiGraphics.pose().popPose();
         }
 
-        guiGraphics.drawCenteredString(this.font, this.title.getString(),
-                this.width / 2, 12, 0xFFFFFF);
+        double scale = this.minecraft.getWindow().getGuiScale();
+
+        // drawCenteredString always has drop shadow.
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(width / 2, 15, 0);
+        guiGraphics.drawCenteredString(this.font, this.title.getString(), 0, 0, 0xFFFFFF);
+        guiGraphics.pose().scale( 0.5f, 0.5f, 0.5f);
+        guiGraphics.pose().translate(0, 20, 0);
+        guiGraphics.drawString(this.font, "Deaths Over Time", - this.font.width("Deaths Over Time") / 2, 0, 0xFF000000, false);
+        guiGraphics.pose().popPose();
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate( (18 / scale) + 15, height / 2, 0);
+        // undo gui scale factor
+        guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(-90.0F));
+        guiGraphics.pose().scale( 1.0f / (float)scale, 1.0f / (float)scale, 1.0f / (float)scale);
+        // scale text to be fixed based on margin in jfreechart axis space
+        guiGraphics.pose().scale( 1.5f, 1.5f, 1.5f);
+        //guiGraphics.drawCenteredString(this.font, "Deaths", 0, 0, 0xFFFFFF);
+        guiGraphics.drawString(this.font, "Deaths", 0, - this.font.width("Deaths") / 2, 0xFFFFFF, false);
+        guiGraphics.pose().popPose();
+
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(this.width / 2, height - (18 / scale) - 10 , 0);
+        // undo gui scale factor
+        guiGraphics.pose().scale( 1.0f / (float)scale, 1.0f / (float)scale, 1.0f / (float)scale);
+        // scale text to be fixed based on margin in jfreechart axis space
+        guiGraphics.pose().scale( 1.5f, 1.5f, 1.5f);
+
+        guiGraphics.drawString(this.font, "Time", - this.font.width("Time") / 2, 0, 0xFFFFFF, false);
+        guiGraphics.pose().popPose();
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
@@ -153,7 +182,6 @@ public class ChartScreen extends Screen {
 
     @Override
     public void resize(Minecraft minecraft, int width, int height) {
-        System.out.println("Resize " + width + "x" + height);
         // update image
         updateChartTexture(width, height);
 
@@ -173,10 +201,9 @@ public class ChartScreen extends Screen {
 
     private void updateChartTexture(int width, int height) {
         long start = System.currentTimeMillis();
-        System.out.println("updateChartTexture " + width + "x" + height);
         JFreeChart chart = createChart(createDataset());
         double scale = this.minecraft.getWindow().getGuiScale();
-        BufferedImage image = chart.createBufferedImage((int) (width * scale) - 16, (int) (height * scale) - 16);
+        BufferedImage image = chart.createBufferedImage((int) (width * scale) - 32, (int) (height * scale) - 32);
         try {
             ByteBuffer buffer = convertImageData(image);
             NativeImage nativeImage = NativeImage.read(RGBA, buffer);
@@ -210,8 +237,8 @@ public class ChartScreen extends Screen {
     public JFreeChart createChart(XYDataset dataset) {
         JFreeChart chart = ChartFactory.createTimeSeriesChart(
                 "",            // title
-                "Time",             // x-axis label
-                "Deaths",           // y-axis label
+                " ",             // x-axis label
+                " ",           // y-axis label
                 dataset,            // data
                 false,              // create legend?
                 false,              // generate tooltips?
@@ -219,7 +246,9 @@ public class ChartScreen extends Screen {
         );
 
         //Minecraft gray inv color C6C6C6
-        Color gray = Color.decode("#C6C6C6");
+        Color lightGray = Color.decode("#C6C6C6");
+        // Button gray
+        Color gray = Color.decode("#717171");
 
         chart.setBackgroundPaint(gray);
         chart.getTitle().setFont(minecraftFont);
@@ -227,11 +256,11 @@ public class ChartScreen extends Screen {
         chart.setTextAntiAlias(true);
 
         XYPlot plot = (XYPlot) chart.getPlot();
-        plot.setBackgroundPaint(gray);
-        plot.setDomainGridlinePaint(gray);
-        plot.setRangeGridlinePaint(gray);
-        plot.setOutlinePaint(gray);
-        plot.setAxisOffset(new RectangleInsets(5.0, 5.0, 5.0, 5.0));
+        plot.setBackgroundPaint(lightGray);
+        plot.setDomainGridlinePaint(lightGray);
+        plot.setRangeGridlinePaint(lightGray);
+        plot.setOutlinePaint(Color.black);
+        plot.setAxisOffset(new RectangleInsets(1.0, 1.0, 1.0, 1.0));
         plot.setDomainCrosshairVisible(true);
         plot.setRangeCrosshairVisible(true);
 
@@ -240,24 +269,25 @@ public class ChartScreen extends Screen {
             XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) r;
             renderer.setDefaultShapesVisible(false);
             renderer.setSeriesPaint(0, Color.BLACK);
+            renderer.setSeriesStroke( 0, new BasicStroke(2.0f));
         }
 
         DateAxis timeAxis = (DateAxis) plot.getDomainAxis();
         timeAxis.setDateFormatOverride(new SimpleDateFormat("HH"));
         timeAxis.setTickUnit(new DateTickUnit(DateTickUnitType.HOUR, 1));
-        System.out.println("Height in update " + this.height);
-        timeAxis.setLabelFont( this.height < 640 ? minecraftSmallFont : minecraftFont);
-        timeAxis.setTickLabelFont(minecraftSmallFont);
-        timeAxis.setLabelPaint(Color.black);
+        timeAxis.setLabelFont(minecraftFont);
+        timeAxis.setTickLabelFont(minecraftFont);
+        timeAxis.setTickLabelPaint(Color.black);
+        timeAxis.setAxisLinePaint(Color.black);
 
         NumberAxis deathAxis = (NumberAxis) plot.getRangeAxis();
         DecimalFormat decimalFormatter = new DecimalFormat("0");
         deathAxis.setNumberFormatOverride(decimalFormatter);
         deathAxis.setTickUnit(new NumberTickUnit(1.0));
-        System.out.println("Width in update " + this.width);
-        deathAxis.setLabelFont( this.width < 640 ? minecraftSmallFont : minecraftFont);
-        deathAxis.setTickLabelFont(minecraftSmallFont);
-        deathAxis.setLabelPaint(Color.black);
+        deathAxis.setLabelFont(minecraftFont);
+        deathAxis.setTickLabelFont(minecraftFont);
+        deathAxis.setTickLabelPaint(Color.black);
+        deathAxis.setAxisLinePaint(Color.black);
 
         return chart;
     }

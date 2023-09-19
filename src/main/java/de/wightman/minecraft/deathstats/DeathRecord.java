@@ -1,7 +1,6 @@
 package de.wightman.minecraft.deathstats;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.annotations.Expose;
 
 import java.util.Objects;
@@ -15,9 +14,6 @@ public class DeathRecord  {
     public String killedByKey;
     @Expose
     public String killedByStr;
-
-    private DeathRecord() {
-    }
 
     public DeathRecord(String deathMessage, String killedByKey, String killedByStr) {
         Objects.requireNonNull(deathMessage, "deathMessage cannot be null");

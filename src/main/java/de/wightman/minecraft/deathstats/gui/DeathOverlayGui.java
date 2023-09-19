@@ -1,6 +1,5 @@
 package de.wightman.minecraft.deathstats.gui;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import de.wightman.minecraft.deathstats.DeathStats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;

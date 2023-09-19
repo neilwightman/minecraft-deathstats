@@ -1,9 +1,5 @@
 package de.wightman.minecraft.deathstats.gui;
 
-import java.util.Objects;
-
-import com.google.common.collect.ImmutableList;
-import com.mojang.serialization.Codec;
 import net.minecraft.Util;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.gui.GuiGraphics;
@@ -11,9 +7,8 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.OptionsList;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.sounds.SoundSource;
 
-import javax.swing.text.html.Option;
+import java.util.Objects;
 
 // Use cloth?
 public final class ConfigScreen extends Screen {

@@ -5,7 +5,6 @@ import de.wightman.minecraft.deathstats.gui.ConfigScreen;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentContents;
 import net.minecraft.network.chat.MutableComponent;

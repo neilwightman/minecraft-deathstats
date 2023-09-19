@@ -13,11 +13,15 @@ import net.minecraft.resources.ResourceLocation;
 import org.h2.mvstore.MVMap;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.annotations.XYLineAnnotation;
+import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.axis.*;
+import org.jfree.chart.labels.XYItemLabelGenerator;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.ui.RectangleInsets;
+import org.jfree.chart.ui.TextAnchor;
 import org.jfree.data.time.*;
 import org.jfree.data.xy.XYDataset;
 import org.slf4j.Logger;
@@ -222,7 +226,6 @@ public class ChartScreen extends Screen {
         try {
             // TODO can we write straight to the bytebuffer?
             boolean write = ImageIO.write(bi, "PNG", out);
-            System.out.println("write = " + write);
             byte[] data = out.toByteArray();
             ByteBuffer direct = ByteBuffer.allocateDirect(data.length);
             direct.put(data, 0, data.length);
@@ -234,7 +237,7 @@ public class ChartScreen extends Screen {
         return null;
     }
 
-    public JFreeChart createChart(XYDataset dataset) {
+    public JFreeChart createChart(TimeSeriesCollection dataset) {
         JFreeChart chart = ChartFactory.createTimeSeriesChart(
                 "",            // title
                 " ",             // x-axis label
@@ -273,26 +276,39 @@ public class ChartScreen extends Screen {
         }
 
         DateAxis timeAxis = (DateAxis) plot.getDomainAxis();
-        timeAxis.setDateFormatOverride(new SimpleDateFormat("HH"));
-        timeAxis.setTickUnit(new DateTickUnit(DateTickUnitType.HOUR, 1));
+        timeAxis.setDateFormatOverride(new SimpleDateFormat("d/MM HH:mm"));
         timeAxis.setLabelFont(minecraftFont);
         timeAxis.setTickLabelFont(minecraftFont);
         timeAxis.setTickLabelPaint(Color.black);
         timeAxis.setAxisLinePaint(Color.black);
+        timeAxis.setAutoRange(true);
+        timeAxis.setAutoTickUnitSelection(true);
 
         NumberAxis deathAxis = (NumberAxis) plot.getRangeAxis();
         DecimalFormat decimalFormatter = new DecimalFormat("0");
         deathAxis.setNumberFormatOverride(decimalFormatter);
-        deathAxis.setTickUnit(new NumberTickUnit(1.0));
+        deathAxis.setAutoRange(true);
+        deathAxis.setAutoTickUnitSelection(true);
         deathAxis.setLabelFont(minecraftFont);
         deathAxis.setTickLabelFont(minecraftFont);
         deathAxis.setTickLabelPaint(Color.black);
         deathAxis.setAxisLinePaint(Color.black);
 
+        // TODO green for start session, red for end.
+//        TimeSeries s1 = dataset.getSeries(0);
+//        double maxY = s1.getMaxY();
+//        long x = s1.getTimePeriod(5).getFirstMillisecond();
+//        XYLineAnnotation a2 = new XYLineAnnotation(x, 0, x + 1.0, maxY);
+//        plot.addAnnotation(a2);
+//
+//        XYTextAnnotation txt = new XYTextAnnotation( "Started", x, maxY );
+//        txt.setTextAnchor(TextAnchor.BASELINE_LEFT);
+//        plot.addAnnotation(txt);
+
         return chart;
     }
 
-    public static XYDataset createDataset() {
+    public static TimeSeriesCollection createDataset() {
         final TimeSeries s1 = new TimeSeries("Deaths");
 
         MVMap<Long, String> log = DeathStats.getInstance().getDeathLog();
@@ -305,8 +321,12 @@ public class ChartScreen extends Screen {
         TimeSeriesCollection dataset = new TimeSeriesCollection();
         dataset.addSeries(s1);
 
+        /**
+         * TODO Need a second series for times game started and ended.
+         * To attach the annotations too
+         */
+
+
         return dataset;
     }
-
-
 }

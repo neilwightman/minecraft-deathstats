@@ -2,12 +2,15 @@ package de.wightman.minecraft.deathstats.gui;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
+import de.wightman.minecraft.deathstats.DeathRecord;
+import de.wightman.minecraft.deathstats.DeathStats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import org.h2.mvstore.MVMap;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.*;
@@ -15,10 +18,10 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.ui.RectangleInsets;
-import org.jfree.data.time.Hour;
-import org.jfree.data.time.TimeSeries;
-import org.jfree.data.time.TimeSeriesCollection;
+import org.jfree.data.time.*;
 import org.jfree.data.xy.XYDataset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -28,10 +31,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import static com.mojang.blaze3d.platform.NativeImage.Format.RGBA;
 
 public class ChartScreen extends Screen {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChartScreen.class);
 
     private static final int MARGIN = 20;
 
@@ -166,6 +172,7 @@ public class ChartScreen extends Screen {
 
 
     private void updateChartTexture(int width, int height) {
+        long start = System.currentTimeMillis();
         System.out.println("updateChartTexture " + width + "x" + height);
         JFreeChart chart = createChart(createDataset());
         double scale = this.minecraft.getWindow().getGuiScale();
@@ -178,6 +185,8 @@ public class ChartScreen extends Screen {
             this.minecraft.getTextureManager().register(chartLocation, texture);
         } catch (IOException ioe) {
             ioe.printStackTrace();
+        } finally {
+            LOGGER.info("Chart time = {}ms", System.currentTimeMillis() - start);
         }
     }
 
@@ -255,9 +264,13 @@ public class ChartScreen extends Screen {
 
     public static XYDataset createDataset() {
         final TimeSeries s1 = new TimeSeries("Deaths");
-        s1.add(new Hour( 10, 1,1,1978), 5);
-        s1.add(new Hour( 12, 1,1,1978), 10);
-        s1.add(new Hour( 15, 1,1,1978), 1);
+
+        MVMap<Long, String> log = DeathStats.getInstance().getDeathLog();
+
+        int count = 0;
+        for (Long ts : log.keySet()) {
+            s1.add(new Millisecond(new Date(ts)), ++count);
+        }
 
         TimeSeriesCollection dataset = new TimeSeriesCollection();
         dataset.addSeries(s1);

@@ -6,6 +6,9 @@
   "deathstats.configuration.title": "Death Stats",
   "deathstats.configuration.moreInfo": "More info...",
 
-  "deathstats.key.name" : "Open death chart",
+  "deathstats.top.title": "Tops Deaths",
+
+  "deathstats.overtime.key.name" : "Open deaths over time chart",
+  "deathstats.top.key.name" : "Open top death list",
   "deathstats.key.category": "Death Stats"
 }

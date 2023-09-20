@@ -13,17 +13,15 @@ import net.minecraft.resources.ResourceLocation;
 import org.h2.mvstore.MVMap;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.annotations.XYLineAnnotation;
-import org.jfree.chart.annotations.XYTextAnnotation;
-import org.jfree.chart.axis.*;
-import org.jfree.chart.labels.XYItemLabelGenerator;
+import org.jfree.chart.axis.DateAxis;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.ui.RectangleInsets;
-import org.jfree.chart.ui.TextAnchor;
-import org.jfree.data.time.*;
-import org.jfree.data.xy.XYDataset;
+import org.jfree.data.time.Millisecond;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,9 +37,9 @@ import java.util.Date;
 
 import static com.mojang.blaze3d.platform.NativeImage.Format.RGBA;
 
-public class ChartScreen extends Screen {
+public class DeathsOverTimeChartScreen extends Screen {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ChartScreen.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeathsOverTimeChartScreen.class);
 
     private static final int MARGIN = 20;
 
@@ -50,12 +48,13 @@ public class ChartScreen extends Screen {
     private DynamicTexture texture;
     private java.awt.Font minecraftFont = null;
 
-    public ChartScreen() {
+    // TODO handle parent screens
+    public DeathsOverTimeChartScreen() {
         super(Component.translatable("deathstats.name"));
         this.chartLocation = new ResourceLocation("deathstats", "textures/dynamic/chart");
         this.borderLocation = new ResourceLocation("deathstats","textures/gui/borders.png");
         try {
-            java.awt.Font customFont = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, ChartScreen.class.getResourceAsStream("/assets/deathstats/font/Minecraft.ttf"));
+            java.awt.Font customFont = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, DeathsOverTimeChartScreen.class.getResourceAsStream("/assets/deathstats/font/Minecraft.ttf"));
             this.minecraftFont = customFont.deriveFont(14f);
         } catch (Exception e) {
             e.printStackTrace();

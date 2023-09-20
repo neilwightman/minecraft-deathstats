@@ -2,12 +2,11 @@ package de.wightman.minecraft.deathstats;
 
 import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.ConfigScreen;
-import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
+import de.wightman.minecraft.deathstats.event.DeathSoundEvents;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.ComponentContents;
-import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.*;
 import net.minecraft.network.chat.contents.LiteralContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
@@ -32,7 +31,9 @@ import org.h2.mvstore.MVStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.File;
+import java.util.Objects;
 import java.util.Optional;
 
 @Mod(DeathStats.MOD_ID)
@@ -231,12 +232,14 @@ public class DeathStats {
         setCurrent(current);
     }
 
-    private void logDeath(String deathMessageKey, String killedByKey, String killedByName) {
+    private void logDeath(String deathMessageKey, @Nullable String killedByKey, @Nullable String killedByName, int argb) {
         if (deathLog == null) return;
+
+        Objects.requireNonNull(deathMessageKey);
 
         LOGGER.info("logDeath({},{},{})", deathMessageKey, killedByKey, killedByName);
 
-        DeathRecord dr = new DeathRecord(deathMessageKey, killedByKey, killedByName);
+        DeathRecord dr = new DeathRecord(deathMessageKey, killedByKey, killedByName, argb);
         deathLog.append(System.currentTimeMillis(), dr.toJsonString());
     }
 
@@ -278,9 +281,14 @@ public class DeathStats {
                     LOGGER.debug("{} {}", key, killedBy);
                     String killedByKey = null;  // localised key of item which killed the player
                     String killedByStr = null;  // the name of the mob for named mobs and players
+                    int intARGB = ChatFormatting.WHITE.getColor();
 
                     if (killedBy instanceof MutableComponent mc) {
                         ComponentContents killedByContents = mc.getContents();
+                        Style style = mc.getStyle();
+                        TextColor color = style.getColor();
+                        if (color != null) intARGB = color.getValue();
+
                         if (killedByContents instanceof TranslatableContents killedByTc) {
                             killedByKey = killedByTc.getKey();
                         }
@@ -289,7 +297,7 @@ public class DeathStats {
                         }
                     }
 
-                    logDeath(key, killedByKey, killedByStr);
+                    logDeath(key, killedByKey, killedByStr, intARGB);
                 }
 
                 increaseCounter();

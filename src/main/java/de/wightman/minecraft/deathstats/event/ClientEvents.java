@@ -1,8 +1,9 @@
 package de.wightman.minecraft.deathstats.event;
 
 import de.wightman.minecraft.deathstats.DeathStats;
-import de.wightman.minecraft.deathstats.gui.ChartScreen;
+import de.wightman.minecraft.deathstats.gui.DeathsOverTimeChartScreen;
 import de.wightman.minecraft.deathstats.gui.KeyBinding;
+import de.wightman.minecraft.deathstats.gui.TopDeathStatsScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
@@ -18,11 +19,16 @@ public class ClientEvents {
         @SubscribeEvent
         public static void onKeyPressed(InputEvent.Key event)
         {
-            //if (Minecraft.getInstance().player == null) return;
+            if (Minecraft.getInstance().player == null) return;
 
-            if (event.getKey() == KeyBinding.DEATH_STATS_KEY.getKey().getValue() &&  event.getAction() == GLFW.GLFW_PRESS) {
-                if (!(Minecraft.getInstance().screen instanceof ChartScreen)) {
-                    Minecraft.getInstance().setScreen(new ChartScreen());
+            if (event.getKey() == KeyBinding.DEATH_STATS_OVER_TIME_KEY.getKey().getValue() &&  event.getAction() == GLFW.GLFW_PRESS) {
+                if (!(Minecraft.getInstance().screen instanceof DeathsOverTimeChartScreen)) {
+                    Minecraft.getInstance().setScreen(new DeathsOverTimeChartScreen());
+                }
+            }
+            if (event.getKey() == KeyBinding.DEATH_STATS_TOP_KEY.getKey().getValue() &&  event.getAction() == GLFW.GLFW_PRESS) {
+                if (!(Minecraft.getInstance().screen instanceof TopDeathStatsScreen)) {
+                    Minecraft.getInstance().setScreen(new TopDeathStatsScreen(Minecraft.getInstance().screen));
                 }
             }
         }
@@ -32,7 +38,8 @@ public class ClientEvents {
     public static class ClientModBusEvents {
         @SubscribeEvent
         public static void registerKeyBindings(RegisterKeyMappingsEvent event) {
-            event.register(KeyBinding.DEATH_STATS_KEY);
+            event.register(KeyBinding.DEATH_STATS_OVER_TIME_KEY);
+            event.register(KeyBinding.DEATH_STATS_TOP_KEY);
         }
     }
 }

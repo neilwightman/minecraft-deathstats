@@ -1,4 +1,4 @@
-package de.wightman.minecraft.deathstats.gui;
+package de.wightman.minecraft.deathstats.event;
 
 
 import de.wightman.minecraft.deathstats.DeathStats;

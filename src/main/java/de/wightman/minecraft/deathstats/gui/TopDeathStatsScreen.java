@@ -2,6 +2,7 @@ package de.wightman.minecraft.deathstats.gui;
 
 import de.wightman.minecraft.deathstats.DeathRecord;
 import de.wightman.minecraft.deathstats.DeathStats;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -67,15 +68,22 @@ public class TopDeathStatsScreen extends Screen {
         // Should be cached only called once per screen open.
         MVMap<Long, String> log = DeathStats.getInstance().getDeathLog();
 
+        String player = Minecraft.getInstance().player.getName().getString();
+
         Map<String, Long> deathTypeToCountMap = new HashMap<>();
         Map<String, Integer> colors = new HashMap<>();
 
         for(String val :log.values())
         {
+            // probably best to store this info on death
             DeathRecord dr = DeathRecord.fromString(val);
             String name = dr.killedByStr;
-            if (name == null) name = Language.getInstance().getOrDefault(dr.killedByKey);
-            if (name == null) name = dr.deathMessage;
+            if (name == null && dr.killedByKey != null) {
+                name = Component.translatable(dr.killedByKey).getString();
+            }
+            if (name == null) {
+                name = Component.translatable(dr.deathMessage, player).getString();
+            }
 
             Long l = deathTypeToCountMap.get(name);
             if (l == null) l = 0L;

@@ -4,37 +4,39 @@ import de.wightman.minecraft.deathstats.DeathRecord;
 import de.wightman.minecraft.deathstats.DeathStats;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.forgespi.language.IModInfo;
 import org.h2.mvstore.MVMap;
 
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class TopDeathStatsScreen extends Screen {
     private final Screen parentScreen;
     private TopDeathStatsWidget deathStatsWidget;
-    List<TopDeathStatsWidget.TopDeathStatEntry> list = new ArrayList<>();
-
+    private final List<DeathLeaderBoardEntry> list = new ArrayList<>();
+    private static final DeathLeaderBoardComparator cmp = new DeathLeaderBoardComparator();
 
     public TopDeathStatsScreen(Screen parentScreen) {
         super(Component.translatable("deathstats.top.title"));
         this.parentScreen = parentScreen;
+        buildEntries();
     }
 
     @Override
     protected void init() {
         super.init();
 
-        this.deathStatsWidget = new TopDeathStatsWidget(this, width - 20, 20, height);
-        //this.deathStatsWidget.setLeftPos(6);
+        this.deathStatsWidget = new TopDeathStatsWidget(this, width - 8, 20, height - 20);
 
         this.addRenderableWidget(deathStatsWidget);
 
         this.deathStatsWidget.refreshList();
+    }
+
+    @Override
+    public void setTooltipForNextRenderPass(Component p_259986_) {
+        super.setTooltipForNextRenderPass(p_259986_);
     }
 
     @Override
@@ -57,34 +59,71 @@ public class TopDeathStatsScreen extends Screen {
         this.minecraft.setScreen(this.parentScreen);
     }
 
-    public <T extends ObjectSelectionList.Entry<T>> void buildList(Consumer<T> consumer, Function<TopDeathStatsWidget.TopDeathStatEntry, T> newEntry)
-    {
-        list.forEach(mod->consumer.accept(newEntry.apply(mod)));
+    public List<DeathLeaderBoardEntry> getLeaderBoard() {
+        return list;
     }
 
-    public Set<Map.Entry<String,Long>> getEntries() {
+    private void buildEntries() {
         // Should be cached only called once per screen open.
         MVMap<Long, String> log = DeathStats.getInstance().getDeathLog();
 
         Map<String, Long> deathTypeToCountMap = new HashMap<>();
+        Map<String, Integer> colors = new HashMap<>();
 
         for(String val :log.values())
         {
             DeathRecord dr = DeathRecord.fromString(val);
             String name = dr.killedByStr;
-            if (name == null) name = dr.killedByKey;
+            if (name == null) name = Language.getInstance().getOrDefault(dr.killedByKey);
             if (name == null) name = dr.deathMessage;
 
             Long l = deathTypeToCountMap.get(name);
             if (l == null) l = 0L;
 
             deathTypeToCountMap.put(name, l + 1L);
+
+            colors.put(name, dr.argb);
         }
-        System.out.println(deathTypeToCountMap.size());
 
-        List<TopDeathStatsWidget.TopDeathStatEntry> list = new ArrayList<>();
+        for (var entry : deathTypeToCountMap.entrySet()) {
+            String name = entry.getKey();
+            int color = colors.get(name);
+            list.add(new DeathLeaderBoardEntry(name, entry.getValue(), color));
+        }
 
-        return deathTypeToCountMap.entrySet();
+        list.sort(cmp);
     }
 
+    public static class DeathLeaderBoardEntry {
+        public final String name;
+        public final long deaths;
+        public final int color;
+
+        public DeathLeaderBoardEntry(String name, long deaths, int color) {
+            this.name = name;
+            this.deaths = deaths;
+            this.color = color;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            DeathLeaderBoardEntry that = (DeathLeaderBoardEntry) o;
+            return deaths == that.deaths && color == that.color && Objects.equals(name, that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, deaths, color);
+        }
+    }
+
+    public static class DeathLeaderBoardComparator implements Comparator<DeathLeaderBoardEntry> {
+
+        @Override
+        public int compare(DeathLeaderBoardEntry o1, DeathLeaderBoardEntry o2) {
+            return (int)(o2.deaths - o1.deaths);
+        }
+    }
 }

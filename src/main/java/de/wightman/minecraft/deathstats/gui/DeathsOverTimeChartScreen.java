@@ -136,7 +136,7 @@ public class DeathsOverTimeChartScreen extends Screen {
         guiGraphics.drawCenteredString(this.font, this.title.getString(), 0, 0, 0xFFFFFF);
         guiGraphics.pose().scale( 0.5f, 0.5f, 0.5f);
         guiGraphics.pose().translate(0, 20, 0);
-        guiGraphics.drawString(this.font, "Deaths Over Time", - this.font.width("Deaths Over Time") / 2, 0, 0xFF000000, false);
+        guiGraphics.drawString(this.font, Component.translatable("deathstats.overtime.title"), - this.font.width("Deaths Over Time") / 2, 0, 0xFF000000, false);
         guiGraphics.pose().popPose();
 
         guiGraphics.pose().pushPose();
@@ -147,7 +147,7 @@ public class DeathsOverTimeChartScreen extends Screen {
         // scale text to be fixed based on margin in jfreechart axis space
         guiGraphics.pose().scale( 1.5f, 1.5f, 1.5f);
         //guiGraphics.drawCenteredString(this.font, "Deaths", 0, 0, 0xFFFFFF);
-        guiGraphics.drawString(this.font, "Deaths", 0, - this.font.width("Deaths") / 2, 0xFFFFFF, false);
+        guiGraphics.drawString(this.font, Component.translatable("deathstats.overtime.axis.deaths"), 0, - this.font.width("Deaths") / 2, 0xFFFFFF, false);
         guiGraphics.pose().popPose();
 
 
@@ -158,7 +158,7 @@ public class DeathsOverTimeChartScreen extends Screen {
         // scale text to be fixed based on margin in jfreechart axis space
         guiGraphics.pose().scale( 1.5f, 1.5f, 1.5f);
 
-        guiGraphics.drawString(this.font, "Time", - this.font.width("Time") / 2, 0, 0xFFFFFF, false);
+        guiGraphics.drawString(this.font, Component.translatable("deathstats.overtime.axis.time"), - this.font.width("Time") / 2, 0, 0xFFFFFF, false);
         guiGraphics.pose().popPose();
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
@@ -167,19 +167,16 @@ public class DeathsOverTimeChartScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        System.out.println("Clicked :" + mouseX + " " + mouseY + " " + button);
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double p_94688_) {
-        System.out.println("Scrolled :" + mouseX + " " + mouseY + " " + p_94688_);
         return super.mouseScrolled(mouseX, mouseX, p_94688_);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double p_94702_, double p_94703_) {
-        System.out.println("Dragged :" + mouseX + " " + mouseY + " " + button);
         return super.mouseDragged(mouseX, mouseY, button, p_94702_, p_94703_);
     }
 

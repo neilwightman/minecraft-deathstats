@@ -261,7 +261,7 @@ public class DeathStats {
                     return Optional.empty();
                 });
 
-                LOGGER.info("Death {} {}", tc, str.toString());
+                LOGGER.info("Death {} {}", tc, str);
 
                 String key = tc.getKey();
                 if (key.startsWith("death.")) {

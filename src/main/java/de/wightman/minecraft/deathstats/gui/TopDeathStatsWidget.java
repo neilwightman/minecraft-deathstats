@@ -93,7 +93,8 @@ public class TopDeathStatsWidget extends ObjectSelectionList<TopDeathStatsWidget
 
             guiGraphics.hLine( left, left + entryWidth, top + entryHeight, 584700626);
 
-            if (isMouseOver) {
+            // TODO this is not good.
+            if (isMouseOver && !name.startsWith(Minecraft.getInstance().player.getName().getString())) {
                 parent.setTooltipForNextRenderPass(Component.translatable("deathstats.top.tooltip", name, deaths));
             }
         }

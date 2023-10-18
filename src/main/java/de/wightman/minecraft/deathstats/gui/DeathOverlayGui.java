@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.locale.Language;
 import net.minecraftforge.client.gui.overlay.ForgeGui;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
@@ -33,11 +34,11 @@ public class DeathOverlayGui extends GuiGraphics implements IGuiOverlay {
             int current = stats.getCurrent();
             int max = stats.getMax();
 
-            String title = "§lDeath Counter§r";
-            String highScore = "New High Score";
-            String line1Left = "Current: ";
+            String title = Language.getInstance().getOrDefault("deathstats.overlay.title");
+            String highScore = Language.getInstance().getOrDefault("deathstats.overlay.highScore");
+            String line1Left = Language.getInstance().getOrDefault("deathstats.overlay.current");
             String line1Right = String.valueOf(current);
-            String line2Left = "Max: ";
+            String line2Left = Language.getInstance().getOrDefault("deathstats.overlay.max");
             String line2Right = String.valueOf(max);
 
             Font font = getFont();

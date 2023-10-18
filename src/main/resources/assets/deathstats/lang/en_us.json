@@ -15,5 +15,10 @@
 
   "deathstats.key.overtime.key.name": "Open deaths over time chart",
   "deathstats.key.top.name": "Open top death list",
-  "deathstats.key.category": "Death Stats"
+  "deathstats.key.category": "Death Stats",
+
+  "deathstats.overlay.title": "§lDeath Counter§r",
+  "deathstats.overlay.highscore": "New High Score",
+  "deathstats.overlay.current": "Current: ",
+  "deathstats.overlay.max": "Max: "
 }

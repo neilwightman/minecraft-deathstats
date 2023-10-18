@@ -23,7 +23,7 @@ public class DeathRecord  {
     @Expose
     public int argb;
 
-    public DeathRecord(String deathMessage, String killedByKey, String killedByStr, int argb) {
+    public DeathRecord(String deathMessage, @Nullable String killedByKey, @Nullable String killedByStr, int argb) {
         Objects.requireNonNull(deathMessage, "deathMessage cannot be null");
 
         this.deathMessage = deathMessage;
@@ -42,5 +42,18 @@ public class DeathRecord  {
 
     public String toJsonString () {
         return toJsonString(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DeathRecord that = (DeathRecord) o;
+        return argb == that.argb && Objects.equals(deathMessage, that.deathMessage) && Objects.equals(killedByKey, that.killedByKey) && Objects.equals(killedByStr, that.killedByStr);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(deathMessage, killedByKey, killedByStr, argb);
     }
 }

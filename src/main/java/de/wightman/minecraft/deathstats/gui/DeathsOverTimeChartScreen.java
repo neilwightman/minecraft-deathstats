@@ -10,7 +10,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import org.h2.mvstore.MVMap;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
@@ -34,6 +33,9 @@ import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.mojang.blaze3d.platform.NativeImage.Format.RGBA;
 
@@ -307,10 +309,11 @@ public class DeathsOverTimeChartScreen extends Screen {
     public static TimeSeriesCollection createDataset() {
         final TimeSeries s1 = new TimeSeries("Deaths");
 
-        MVMap<Long, String> log = DeathStats.getInstance().getDeathLog();
+        int sessionId = DeathStats.getInstance().getActiveSessionId();
+        List<Long> res = DeathStats.getInstance().getDeathsPerSession(sessionId);
 
         int count = 0;
-        for (Long ts : log.keySet()) {
+        for (Long ts : res) {
             s1.add(new Millisecond(new Date(ts)), ++count);
         }
 

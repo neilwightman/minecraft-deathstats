@@ -1,19 +1,27 @@
 package de.wightman.minecraft.deathstats;
 
+import de.wightman.minecraft.deathstats.db.DeathsDB;
+import de.wightman.minecraft.deathstats.event.DeathSoundEvents;
+import de.wightman.minecraft.deathstats.event.OverlayUpdateEvent;
 import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.ConfigScreen;
-import de.wightman.minecraft.deathstats.event.DeathSoundEvents;
+import de.wightman.minecraft.deathstats.gui.TopDeathStatsScreen;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.*;
 import net.minecraft.network.chat.contents.LiteralContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.ConfigScreenHandler;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -25,18 +33,16 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.h2.mvstore.MVMap;
-import org.h2.mvstore.MVStore;
-import org.h2.mvstore.MVStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.util.Objects;
-import java.util.Optional;
+import java.sql.SQLException;
+import java.util.*;
 
 @Mod(DeathStats.MOD_ID)
+@Mod.EventBusSubscriber(value = Dist.CLIENT)
 public class DeathStats {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathStats.class);
@@ -46,14 +52,17 @@ public class DeathStats {
     private static DeathStats INSTANCE;
 
     private File deathsFile;
-    private MVStore store;
-    private MVMap<String, Object> properties;
     private boolean isHighScore = false;
 
     private static final String KEY_MAX = "session_death_max";
     private static final String KEY_CURRENT = "current_session_deaths";
     private static final String KEY_IS_VISIBLE = "is_visible";
-    private MVMap<Long, String> deathLog; // cannot store deathrecord classes as mv2 jar in jar class loader cant access our classes.
+
+    // the name of the sessions created when people start and end their world
+    public static final String DEFAULT_SESSION = "default";
+
+    private DeathsDB db;
+    private String worldName;
 
     public DeathStats() {
         //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
@@ -64,6 +73,7 @@ public class DeathStats {
         INSTANCE = this;
     }
 
+    @OnlyIn(Dist.CLIENT)
     private void init() {
         LOGGER.info("Starting DeathStats");
 
@@ -89,34 +99,23 @@ public class DeathStats {
 
     public void startSession() {
         try {
-            store = MVStore.open(deathsFile.getAbsolutePath());
-
-            // Basic key value map
-            properties = store.openMap("minecraft_deaths"); // FIXED
-            // allow player to clear and define what a current session is.
-            Integer current = (Integer) properties.putIfAbsent(KEY_CURRENT, 0);
-            if (current == null) {
-                current = 0;
-            }
-
-            Integer max = (Integer) properties.putIfAbsent(KEY_MAX, 0);
-            if (max == null) {
-                max = 0;
-            }
-
-            Boolean visible = (Boolean) properties.putIfAbsent(KEY_IS_VISIBLE, true);
-            if (visible == null) {
-                visible = true;
-            }
-
             isHighScore = false;
 
-            deathLog = store.openMap("minecraft_deaths_log"); // FIXED
+            db = new DeathsDB();
+            db.startSession(DEFAULT_SESSION);
 
-            LOGGER.debug("startSession {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level);
-            LOGGER.info("deathstats max={}, current={} visible={} log={}", max, current, visible, deathLog.size());
-        } catch (MVStoreException mvStoreException) {
-            LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), mvStoreException);
+            Minecraft client = Minecraft.getInstance();
+            IntegratedServer ss = client.getSingleplayerServer();
+            if (ss != null) {
+                worldName = ss.getWorldData().getLevelName();
+            } else {
+                ServerData cs = client.getCurrentServer();
+                worldName = cs.name;
+            }
+
+            LOGGER.debug("startSession {} {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level, worldName);
+        } catch (SQLException exception) {
+            LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), exception);
             MutableComponent c = Component.literal("ERROR: Cannot open " + deathsFile.getAbsolutePath());
             Minecraft.getInstance().player.sendSystemMessage(c);
         }
@@ -124,66 +123,49 @@ public class DeathStats {
 
     public void endSession() {
         LOGGER.debug("endSession");
-        if (store != null) {
-            store.close();
+
+        try {
+            if (db != null) { // end session is called before a startSession.
+                db.endSession(DEFAULT_SESSION);
+            }
+        } catch (SQLException sql) {
+            LOGGER.warn("Cannot end session in the db", sql);
         }
-
-        store = null;
-        properties = null;
-        deathLog = null;
     }
 
-    public int getMax() {
-        if (properties == null) return -1;
-        return (Integer) properties.get(KEY_MAX);
+    public long getMax() {
+        if (db == null) return -1;
+        // needs to cache and use death events
+        return db.getMaxDeathsPerSession(DEFAULT_SESSION);
     }
 
-    public int getCurrent() {
-        if (properties == null) return - 1;
-        return (Integer) properties.get(KEY_CURRENT);
+    public long getCurrent() {
+        if (db == null) return -1;
+        // needs to cache and use death events
+        return db.getActiveDeathsSession(DEFAULT_SESSION);
     }
 
     public void setMax(final int max) {
-        if (properties == null) return;
-        properties.put(KEY_MAX, max);
+        // TODO Not possible need to fake death log
     }
 
     public boolean isVisible() {
-        if (properties == null) return true;
-        return (Boolean) properties.get(KEY_IS_VISIBLE);
+        return true;
     }
 
     public void setVisible(boolean visible) {
-        if (properties == null) return;
-        properties.put(KEY_IS_VISIBLE, visible);
-    }
-
-
-    public void setCurrent(final int current) {
-        if (properties == null) return;
-
-        properties.put(KEY_CURRENT, current);
-
-        Integer max = (Integer) properties.get(KEY_MAX);
-
-        if (current > max) {
-            properties.put(KEY_MAX, current);
-
-            if (!isHighScore) {
-                if (isVisible()) playHighScoreSound();
-                triggerHighScoreEvent();
-            }
-
-            isHighScore = true;
-        } else {
-            isHighScore = false;
-        }
+        // TODO
     }
 
     public void triggerHighScoreEvent() {
-        MinecraftForge.EVENT_BUS.post(NewHighScoreEvent.HIGH_SCORE_EVENT);
+        MinecraftForge.EVENT_BUS.post(new NewHighScoreEvent());
     }
 
+    public void triggerNewDeathEvent() {
+        MinecraftForge.EVENT_BUS.post(new OverlayUpdateEvent());
+    }
+
+    @OnlyIn(Dist.CLIENT)
     public void playHighScoreSound() {
         LOGGER.debug("playHishScoreSound {} {}", Thread.currentThread().getName(), Thread.currentThread().getId());
 
@@ -220,31 +202,45 @@ public class DeathStats {
         endSession();
     }
 
-    private void increaseCounter() {
-        if (properties == null) return;
+    private void updateHighScore() {
+        if (db == null) return;
 
         // update deaths
-        Integer current = (Integer) properties.get(KEY_CURRENT);
-        current += 1;
+        long current = db.getActiveDeathsSession(DEFAULT_SESSION);
+        long max = db.getMaxDeathsPerSession(DEFAULT_SESSION);
 
         LOGGER.debug("death current={}", current);
 
-        setCurrent(current);
+        if (current > max) {
+            if (!isHighScore) {
+                triggerHighScoreEvent();
+            }
+
+            isHighScore = true;
+        } else {
+            isHighScore = false;
+        }
     }
 
-    private void logDeath(String deathMessageKey, @Nullable String killedByKey, @Nullable String killedByName, int argb) {
-        if (deathLog == null) return;
+    @SubscribeEvent
+    public void playHighScoreSoundOnEvent(final NewHighScoreEvent event) {
+        if (isVisible()) playHighScoreSound();
+    }
+
+    private void logDeath(String worldName, String dimension, String deathMessageKey, @Nullable String killedByKey, @Nullable String killedByName, int argb) {
+        if (db == null) return;
 
         Objects.requireNonNull(deathMessageKey);
 
-        LOGGER.info("logDeath({},{},{})", deathMessageKey, killedByKey, killedByName);
+        LOGGER.info("logDeath({},{},{},{},{})", worldName, dimension, deathMessageKey, killedByKey, killedByName);
 
-        DeathRecord dr = new DeathRecord(deathMessageKey, killedByKey, killedByName, argb);
-        deathLog.append(System.currentTimeMillis(), dr.toJsonString());
-    }
+        DeathRecord dr = new DeathRecord(worldName, dimension, deathMessageKey, killedByKey, killedByName, argb);
 
-    public MVMap<Long, String> getDeathLog() {
-        return deathLog;
+        try {
+            db.newDeath(dr);
+        } catch (SQLException e) {
+            LOGGER.warn("Cannot store death log to db", e);
+        }
     }
 
     public void handlePlayerCombatKill(ClientboundPlayerCombatKillPacket clientPlayerCombatKillPacket) {
@@ -270,18 +266,22 @@ public class DeathStats {
                     Object[] args = tc.getArgs();
 
                     if (key.endsWith(".player")
-                        || key.endsWith(".item")) {
+                            || key.endsWith(".item")) {
                         killedBy = args[1];  // %2
                     }
 
                     if (args.length >= 2) {
-                        killedBy= args[1];  // %2 on all death. messages is the player or mob name
+                        killedBy = args[1];  // %2 on all death. messages is the player or mob name
                     }
 
                     LOGGER.debug("{} {}", key, killedBy);
                     String killedByKey = null;  // localised key of item which killed the player
                     String killedByStr = null;  // the name of the mob for named mobs and players
                     int intARGB = ChatFormatting.WHITE.getColor();
+
+                    ResourceKey<Level> dim = Minecraft.getInstance().level.dimension();
+                    ResourceLocation rs = dim.location();
+                    String dimStr = rs.getPath();
 
                     if (killedBy instanceof MutableComponent mc) {
                         ComponentContents killedByContents = mc.getContents();
@@ -297,11 +297,44 @@ public class DeathStats {
                         }
                     }
 
-                    logDeath(key, killedByKey, killedByStr, intARGB);
+                    logDeath(worldName, dimStr, key, killedByKey, killedByStr, intARGB);
                 }
 
-                increaseCounter();
+                updateHighScore();
+                triggerNewDeathEvent();
             }
         }
+    }
+
+    public List<Long> getDeathsPerSession(final int sessionId) {
+        if (db == null) return Collections.emptyList();
+        return db.getDeathsPerSession(sessionId);
+    }
+
+    public int getActiveSessionId() {
+        if (db == null) return -1;
+        return db.getActiveSessionId();
+    }
+
+    public List<TopDeathStatsScreen.DeathLeaderBoardEntry> getLeaderBoardForSession(final int sessionId) {
+        if (db == null) return Collections.emptyList();
+        return db.getLeaderBoardForSession(sessionId);
+    }
+
+    public void resumeLastSession() {
+        if (db == null) return;
+        db.resumeLastSession();
+
+        triggerNewDeathEvent();
+    }
+
+    public void debugSessionTable() {
+        if (db == null) return;
+        db.debugSessionTable();
+    }
+
+    public void debugDeathLogTable() {
+        if (db == null) return;
+        db.debugDeathLogTable();
     }
 }

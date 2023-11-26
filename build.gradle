@@ -167,18 +167,10 @@ dependencies {
     // The group id is ignored when searching -- in this case, it is "blank"
     // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
 
-//    implementation group: 'org.jfree', name: 'jfreechart', version: '1.5.3'
-//    jarJar(group: 'org.jfree', name: 'jfreechart', version: '[1.5.3,1.5.4)')
-//    minecraftLibrary 'org.jfree:jfreechart:1.5.3'
-
-    // https://mvnrepository.com/artifact/com.h2database/h2-mvstore
-//    implementation 'com.h2database:h2-mvstore:2.1.214'
-//    jarJar(group: 'com.h2database', name: 'h2-mvstore', version: '[2.1,2.2)')
-//    minecraftLibrary 'com.h2database:h2-mvstore:2.1.214'
-
-    // isnt maven jar, no meta data
     minecraftLibrary jarJar(group: "org.jfree", name: "jfreechart", version: "[1.5.4,1.5.5)") { transitive = false }
-    minecraftLibrary jarJar(group: "com.h2database", name: "h2-mvstore", version: "[2.1,2.2)") { transitive = false }
+    // h2 must be fixed as you cannot migrate the format.  You have to export old and import into new which cant be done automatically with 1 jar.
+    //minecraftLibrary jarJar(group: "com.h2database", name: "h2-mvstore", version: "[2.1,2.2)") { transitive = false }
+    minecraftLibrary jarJar(group: "org.xerial", name: "sqlite-jdbc", version: "[3.43.2.0,3.43.2.1)") { transitive = false }
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 

@@ -9,7 +9,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.h2.mvstore.MVMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,24 +29,7 @@ public final class ClientCommands {
         // WARNING : this will only work when playing with a local (embedded) minecraft server.
         // code will not load on a server as its only Dist.CLIENT
         event.getDispatcher().register(Commands.literal("deathstats")
-                .then(Commands.literal("get")
-                        .then(Commands.literal("current")
-                                .executes(ctx -> get_current(ctx.getSource()))
-                        )
-                        .then(Commands.literal("max")
-                                .executes(ctx -> get_max(ctx.getSource()))
-                        )
-                        .then(Commands.literal("highscore")
-                                .executes(ctx -> get_highscore(ctx.getSource()))
-                        )
-                        .executes(ctx -> get_all(ctx.getSource()))
-                )
                 .then(Commands.literal("set")
-                        .then(Commands.literal("current")
-                                .then(Commands.argument("current_value", StringArgumentType.string())
-                                        .executes(ctx -> set_current(ctx.getSource(), StringArgumentType.getString(ctx, "current_value")))
-                                )
-                        )
                         .then(Commands.literal("max").then(Commands.argument("max_value", StringArgumentType.string())
                                         .executes(ctx -> set_max(ctx.getSource(), StringArgumentType.getString(ctx, "max_value")))
                                 )
@@ -62,11 +44,14 @@ public final class ClientCommands {
                         .then(Commands.literal("death_log")
                             .executes(ctx-> dump_death_log(ctx.getSource()))
                          )
+                        .then(Commands.literal("session")
+                                .executes(ctx-> dump_session(ctx.getSource()))
+                        ).then(Commands.literal("sound")
+                                        .executes(ctx -> sound(ctx.getSource()))
+                        )
                         .executes(ctx -> debug(ctx.getSource()))
-                ).then(Commands.literal("sound")
-                        .executes(ctx -> sound(ctx.getSource()))
-                ).then(Commands.literal("reset")
-                        .executes(ctx -> reset(ctx.getSource()))
+                ).then(Commands.literal("resume_last_session")
+                    .executes( ctx -> resumeLastSession(ctx.getSource()))
                 )
         );
     }
@@ -74,12 +59,6 @@ public final class ClientCommands {
     private static int set_max(final CommandSourceStack source, String max) {
         LOGGER.info("set_max {}", max);
         DeathStats.getInstance().setMax(Integer.parseInt(max));
-        return 1;
-    }
-
-    private static int set_current(final CommandSourceStack source, String current) {
-        LOGGER.info("set_current {}", current);
-        DeathStats.getInstance().setCurrent(Integer.parseInt(current));
         return 1;
     }
 
@@ -108,8 +87,8 @@ public final class ClientCommands {
     }
 
     private static int get_all(final CommandSourceStack source) {
-        int current = DeathStats.getInstance().getCurrent();
-        int max = DeathStats.getInstance().getMax();
+        long current = DeathStats.getInstance().getCurrent();
+        long max = DeathStats.getInstance().getMax();
         boolean highScore = DeathStats.getInstance().isHighScore();
         boolean visible = DeathStats.getInstance().isVisible();
         MutableComponent m = Component.literal("""
@@ -124,34 +103,10 @@ public final class ClientCommands {
         return 0;
     }
 
-    private static int get_current(final CommandSourceStack source) {
-        MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getCurrent()));
-        source.getEntity().sendSystemMessage(m);
-        return 0;
-    }
-
-    private static int get_max(final CommandSourceStack source) {
-        MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getMax()));
-        source.getEntity().sendSystemMessage(m);
-        return 0;
-    }
-
-    private static int get_highscore(final CommandSourceStack source) {
-        MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().isHighScore()));
-        source.getEntity().sendSystemMessage(m);
-        return 0;
-    }
-
     private static int debug(final CommandSourceStack source) {
         MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getDeathsFile()));
         source.getEntity().sendSystemMessage(m);
         get_all(source);
-        return 0;
-    }
-
-    private static int reset(final CommandSourceStack source) {
-        set_current(source, "0");
-        set_max(source, "0");
         return 0;
     }
 
@@ -161,14 +116,17 @@ public final class ClientCommands {
     }
 
     private static int dump_death_log(final CommandSourceStack source) {
-        MVMap<Long, String> log = DeathStats.getInstance().getDeathLog();
+        DeathStats.getInstance().debugDeathLogTable();
+        return 0;
+    }
 
-        for (Map.Entry<Long, String> entry: log.entrySet()) {
-            String json = entry.getValue();
-            DeathRecord dr = DeathRecord.fromString(json);
-            LOGGER.info("deathlog {} {} {} {}", entry.getKey(), dr.deathMessage, dr.killedByKey, dr.killedByStr);
-        }
+    private static int dump_session(final CommandSourceStack source) {
+        DeathStats.getInstance().debugSessionTable();
+        return 0;
+    }
 
+    private static int resumeLastSession(final CommandSourceStack source) {
+        DeathStats.getInstance().resumeLastSession();
         return 0;
     }
 }

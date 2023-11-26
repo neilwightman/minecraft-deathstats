@@ -7,8 +7,6 @@ import net.minecraftforge.eventbus.api.Event;
  */
 public class NewHighScoreEvent extends Event {
 
-    public static final NewHighScoreEvent HIGH_SCORE_EVENT = new NewHighScoreEvent();
-
-    private NewHighScoreEvent() {
+    public NewHighScoreEvent() {
     }
 }

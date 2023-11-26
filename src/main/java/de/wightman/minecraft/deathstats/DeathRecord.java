@@ -10,6 +10,12 @@ public class DeathRecord  {
     private static final Gson gson = new Gson();
 
     @Expose
+    public String world;
+
+    @Expose
+    public String dimension;
+
+    @Expose
     public String deathMessage;
 
     @Expose
@@ -23,9 +29,13 @@ public class DeathRecord  {
     @Expose
     public int argb;
 
-    public DeathRecord(String deathMessage, @Nullable String killedByKey, @Nullable String killedByStr, int argb) {
+    // TODO add timestamp
+
+    public DeathRecord(String world, String dimension, String deathMessage, @Nullable String killedByKey, @Nullable String killedByStr, int argb) {
         Objects.requireNonNull(deathMessage, "deathMessage cannot be null");
 
+        this.world = world;
+        this.dimension = dimension;
         this.deathMessage = deathMessage;
         this.killedByKey = killedByKey;
         this.killedByStr = killedByStr;

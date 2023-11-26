@@ -28,9 +28,19 @@ public class TopDeathStatsWidget extends ObjectSelectionList<TopDeathStatsWidget
 
         totalDeaths = 0;
 
+        String player = Minecraft.getInstance().player.getName().getString();
+
         var entries = parent.getLeaderBoard();
         for(var entry : entries) {
-            TopDeathStatWidgetEntry death = new TopDeathStatWidgetEntry(entry.name, entry.deaths, entry.color);
+            String name = entry.killedByStr;
+            if (name == null && entry.killedByKey != null) {
+                name = Component.translatable(entry.killedByKey).getString();
+            }
+            if (name == null) {
+                name = Component.translatable(entry.message, player).getString();
+            }
+
+            TopDeathStatWidgetEntry death = new TopDeathStatWidgetEntry(name, entry.count, entry.color);
             this.addEntry(death);
             totalDeaths += death.deaths;
         }

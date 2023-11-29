@@ -12,9 +12,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Mixin the client packet listener for death events.
- * This code only updates a AtomicLong so its processed in the network thread.
+ * Mixin the client packet listener for death events and passes the packet to <pre>DeathStats.handlePlayerCombatKill()</pre>.
+ * THe onSpawn Forge client event occurs too late and has been broken by Physics Mod.
  * @version 1.0.0
+ * @see DeathStats#handlePlayerCombatKill(ClientboundPlayerCombatKillPacket)
+ * @see <a href="https://github.com/haubna/PhysicsMod/issues/726">PhysicsMod Issue 726</a>
  */
 @Mixin(ClientPacketListener.class)
 public class MixinClientPacketListener {
@@ -29,5 +31,4 @@ public class MixinClientPacketListener {
             DeathStats.getInstance().handlePlayerCombatKill(clientPlayerCombatKillPacket);
         }
     }
-
 }

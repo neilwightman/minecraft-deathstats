@@ -12,7 +12,7 @@ import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import java.sql.SQLException;
 
 import static de.wightman.minecraft.deathstats.DeathStats.MOD_ID;
 
@@ -46,10 +46,14 @@ public final class ClientCommands {
                          )
                         .then(Commands.literal("session")
                                 .executes(ctx-> dump_session(ctx.getSource()))
-                        ).then(Commands.literal("sound")
+                        )
+                        .then(Commands.literal("config")
+                                .executes(ctx-> dump_config(ctx.getSource()))
+                        )
+                        .then(Commands.literal("sound")
                                         .executes(ctx -> sound(ctx.getSource()))
                         )
-                        .executes(ctx -> debug(ctx.getSource()))
+                        .executes(ctx -> debug_all(ctx.getSource()))
                 ).then(Commands.literal("resume_last_session")
                     .executes( ctx -> resumeLastSession(ctx.getSource()))
                 )
@@ -58,7 +62,15 @@ public final class ClientCommands {
 
     private static int set_max(final CommandSourceStack source, String max) {
         LOGGER.info("set_max {}", max);
-        DeathStats.getInstance().setMax(Integer.parseInt(max));
+        try {
+            DeathStats.getInstance().setMax(Long.parseLong(max));
+        } catch (NumberFormatException | SQLException e) {
+            MutableComponent m = Component.literal("""
+            Cannot set max value,
+            Error : %s
+            """.formatted(e.getMessage()));
+            source.getEntity().sendSystemMessage(m);
+        }
         return 1;
     }
 
@@ -80,33 +92,17 @@ public final class ClientCommands {
                 §6/deathstats§f get highscore - §ohas the highscore hit§r
                 §6/deathstats§f debug - §oshows debug information§r
                 §6/deathstats§f sound - §oplays high score sound§r
-                §6/deathstats§f reset - §osets max and current to 0§r
                 """);
         source.getEntity().sendSystemMessage(m);
         return 0;
     }
 
-    private static int get_all(final CommandSourceStack source) {
-        long current = DeathStats.getInstance().getCurrent();
-        long max = DeathStats.getInstance().getMax();
-        boolean highScore = DeathStats.getInstance().isHighScore();
-        boolean visible = DeathStats.getInstance().isVisible();
-        MutableComponent m = Component.literal("""
-                {
-                     §4current§f: §9%s§f,
-                     §4max§f: §9%s§f,
-                     §4highScore§f: §2%s§f
-                     §4visible§f: §2%s§f
-                }
-                """.formatted(current, max, highScore, visible));
+    private static int debug_all(final CommandSourceStack source) {
+        MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getDbPath()));
         source.getEntity().sendSystemMessage(m);
-        return 0;
-    }
-
-    private static int debug(final CommandSourceStack source) {
-        MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getDeathsFile()));
-        source.getEntity().sendSystemMessage(m);
-        get_all(source);
+        dump_session(source);
+        dump_death_log(source);
+        dump_config(source);
         return 0;
     }
 
@@ -122,6 +118,11 @@ public final class ClientCommands {
 
     private static int dump_session(final CommandSourceStack source) {
         DeathStats.getInstance().debugSessionTable();
+        return 0;
+    }
+
+    private static int dump_config(final CommandSourceStack source) {
+        DeathStats.getInstance().debugConfigTable();
         return 0;
     }
 

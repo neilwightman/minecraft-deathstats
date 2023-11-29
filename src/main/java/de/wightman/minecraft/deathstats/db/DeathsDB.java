@@ -1,15 +1,18 @@
 package de.wightman.minecraft.deathstats.db;
 
 import de.wightman.minecraft.deathstats.DeathRecord;
+import de.wightman.minecraft.deathstats.util.Timer;
 import de.wightman.minecraft.deathstats.gui.TopDeathStatsScreen;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @since 2.0.0
@@ -19,8 +22,9 @@ public class DeathsDB {
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathsDB.class);
 
     private Connection conn;
+    private final Path path;
 
-    public DeathsDB() throws SQLException {
+    public DeathsDB(final Path dbFile) throws SQLException {
         // Need to force load the class as jarjar doesnt load the services from the jar.
         try {
             Class.forName("org.sqlite.JDBC");
@@ -28,11 +32,9 @@ public class DeathsDB {
             LOGGER.warn("Couldnt load sqlite driver", e);
         }
 
-        String home = System.getProperty("user.home");
-        File deathStatsDir = new File(home, "deathstats"); // FIXED
-        deathStatsDir.mkdirs();
+        this.path = dbFile;
 
-        String url = "jdbc:sqlite:" + Path.of(deathStatsDir.getPath(), "sqlite.db");
+        String url = "jdbc:sqlite:" + dbFile;
 
         conn = DriverManager.getConnection(url);
         DatabaseMetaData meta = conn.getMetaData();
@@ -42,6 +44,8 @@ public class DeathsDB {
         createDeathLogTable(conn);
 
         createSessionTable(conn);
+
+        createConfigTable(conn);
     }
 
     public void close() {
@@ -53,6 +57,10 @@ public class DeathsDB {
             }
             conn = null;
         }
+    }
+
+    public Path getPath() {
+        return path;
     }
 
     private static void createSessionTable(final Connection conn) throws SQLException {
@@ -238,7 +246,7 @@ public class DeathsDB {
         try (final Statement stmt = conn.createStatement()) {
             final ResultSet rs = stmt.executeQuery(sql);
             if (rs.next()) {
-                return rs.getInt("id");
+                return rs.getInt("ID");
             }
         } catch (SQLException e) {
             LOGGER.warn("Failed to query active session id", e);
@@ -284,7 +292,7 @@ public class DeathsDB {
      * Deletes the current session and sets the last closed session as opened again.
      */
     public void resumeLastSession() {
-        debugSessionTable();
+        debugSessionTable();  // TODO remove
 
         // delete active session
         final String CLOSE_ACTIVE = "delete from session where id = (select max(id) from session);";
@@ -311,10 +319,74 @@ public class DeathsDB {
         } catch (SQLException sqlException) {
             throw new RuntimeException(sqlException);
         }
-        debugSessionTable();
+        debugSessionTable();  // TODO remove
     }
 
     // Allow a max to be set
     // store configs in the db
+
+    private static void createConfigTable(final Connection conn) throws SQLException {
+        try ( var timer = new Timer("createConfigTable")) {
+            String createSessionSql = """
+                    CREATE TABLE IF NOT EXISTS CONFIG (
+                        KEY TEXT NOT NULL PRIMARY KEY,
+                        VALUE TEXT
+                    );
+                    """;
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(createSessionSql);
+            }
+        }
+    }
+
+    public void debugConfigTable() {
+        if (LOGGER.isDebugEnabled()) {
+            if (conn != null) {
+                try ( var timer = new Timer("debugConfigTable")) {
+                    final String selectSql = "SELECT * FROM CONFIG";
+                    try (final Statement stmt = conn.createStatement()) {
+                        final ResultSet rs = stmt.executeQuery(selectSql);
+                        dumpResultSet(rs);
+                    } catch (SQLException e) {
+                        LOGGER.warn("Failed to query death log", e);
+                    }
+                }
+            }
+        }
+    }
+
+    public void setConfig(final String key, final String value) throws SQLException {
+        if (conn != null) {
+            try ( var timer = new Timer("setConfig")) {
+                final String insertSql = "INSERT INTO CONFIG(KEY,VALUE) VALUES(?,?) ON CONFLICT(KEY) DO UPDATE SET VALUE = ?";
+                try (final PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                    pstmt.setString(1, key);
+                    pstmt.setString(2, value);
+                    pstmt.setString(3, value);
+                    pstmt.executeUpdate();
+                }
+            }
+        }
+    }
+
+    public @Nullable String getConfig(@NotNull final String key) {
+        if (conn == null) return null;
+
+        try ( var timer = new Timer("getConfig")) {
+            Objects.requireNonNull(key, "key must not be null");
+
+            final String sql = "SELECT VALUE FROM CONFIG WHERE KEY = ?";
+            try (final PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, key);
+                final ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    return rs.getString("VALUE");
+                }
+            } catch (SQLException e) {
+                LOGGER.warn("Failed to query active session id", e);
+            }
+        }
+        return null;
+    }
 }
 

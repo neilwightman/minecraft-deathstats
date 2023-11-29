@@ -17,6 +17,7 @@ import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -38,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -51,11 +53,9 @@ public class DeathStats {
 
     private static DeathStats INSTANCE;
 
-    private File deathsFile;
     private boolean isHighScore = false;
 
     private static final String KEY_MAX = "session_death_max";
-    private static final String KEY_CURRENT = "current_session_deaths";
     private static final String KEY_IS_VISIBLE = "is_visible";
 
     // the name of the sessions created when people start and end their world
@@ -63,6 +63,9 @@ public class DeathStats {
 
     private DeathsDB db;
     private String worldName;
+    private boolean isVisible = true;
+    // Old max stores the max deaths like it would have been in version 1.0.x
+    private long oldMax = -1;
 
     public DeathStats() {
         //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
@@ -78,7 +81,6 @@ public class DeathStats {
         LOGGER.info("Starting DeathStats");
 
         String home = System.getProperty("user.home");
-        deathsFile = new File(home, "minecraft_deaths.dat"); // FIXED
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -101,22 +103,38 @@ public class DeathStats {
         try {
             isHighScore = false;
 
-            db = new DeathsDB();
+            String home = System.getProperty("user.home");
+            File deathStatsDir = new File(home, "deathstats"); // FIXED
+            deathStatsDir.mkdirs();
+            Path path = Path.of(deathStatsDir.getPath(), "sqlite.db");
+
+            db = new DeathsDB(path);
             db.startSession(DEFAULT_SESSION);
 
             Minecraft client = Minecraft.getInstance();
             IntegratedServer ss = client.getSingleplayerServer();
             if (ss != null) {
-                worldName = ss.getWorldData().getLevelName();
+                String levelName = ss.getWorldData().getLevelName();
+                ServerLevel serverLevel = ss.getLevel(client.level.dimension());
+                long seed = serverLevel.getSeed();
+                worldName = levelName + "/" + seed;
             } else {
                 ServerData cs = client.getCurrentServer();
-                worldName = cs.name;
+                worldName = cs.name + "/" + cs.ip;
+            }
+
+            final String visibleStr = db.getConfig(KEY_IS_VISIBLE);
+            isVisible = (visibleStr == null) ? true : Boolean.valueOf(visibleStr);
+
+            final String maxStr = db.getConfig(KEY_MAX);
+            if (maxStr != null) {
+                oldMax = Long.valueOf(maxStr);
             }
 
             LOGGER.debug("startSession {} {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level, worldName);
         } catch (SQLException exception) {
-            LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), exception);
-            MutableComponent c = Component.literal("ERROR: Cannot open " + deathsFile.getAbsolutePath());
+            LOGGER.error("Cannot open sqlite3 db", exception);
+            MutableComponent c = Component.literal("ERROR: Cannot open sqlite3 db\nError:%s".formatted(exception.getMessage()));
             Minecraft.getInstance().player.sendSystemMessage(c);
         }
     }
@@ -136,7 +154,8 @@ public class DeathStats {
     public long getMax() {
         if (db == null) return -1;
         // needs to cache and use death events
-        return db.getMaxDeathsPerSession(DEFAULT_SESSION);
+        long max = db.getMaxDeathsPerSession(DEFAULT_SESSION);
+        return Math.max(oldMax, max);
     }
 
     public long getCurrent() {
@@ -145,23 +164,32 @@ public class DeathStats {
         return db.getActiveDeathsSession(DEFAULT_SESSION);
     }
 
-    public void setMax(final int max) {
-        // TODO Not possible need to fake death log
+    public void setMax(final long max) throws SQLException {
+        if (db == null) return;
+        db.setConfig(KEY_MAX, String.valueOf(max));
+        oldMax = max;
+        triggerOverlayUpdateEvent();
     }
 
     public boolean isVisible() {
-        return true;
+        return isVisible;
     }
 
     public void setVisible(boolean visible) {
-        // TODO
+        this.isVisible = visible;
+        if (db == null) return;
+        try {
+            db.setConfig(KEY_IS_VISIBLE, String.valueOf(visible));
+        } catch (SQLException e) {
+            LOGGER.warn("Cannot set visible config value", e);
+        }
     }
 
     public void triggerHighScoreEvent() {
         MinecraftForge.EVENT_BUS.post(new NewHighScoreEvent());
     }
 
-    public void triggerNewDeathEvent() {
+    public void triggerOverlayUpdateEvent() {
         MinecraftForge.EVENT_BUS.post(new OverlayUpdateEvent());
     }
 
@@ -184,8 +212,9 @@ public class DeathStats {
         return isHighScore;
     }
 
-    public File getDeathsFile() {
-        return deathsFile;
+    public @Nullable Path getDbPath() {
+        if (db == null) return null;
+        return db.getPath();
     }
 
     // Register user events
@@ -301,7 +330,7 @@ public class DeathStats {
                 }
 
                 updateHighScore();
-                triggerNewDeathEvent();
+                triggerOverlayUpdateEvent();
             }
         }
     }
@@ -325,7 +354,7 @@ public class DeathStats {
         if (db == null) return;
         db.resumeLastSession();
 
-        triggerNewDeathEvent();
+        triggerOverlayUpdateEvent();
     }
 
     public void debugSessionTable() {
@@ -336,5 +365,10 @@ public class DeathStats {
     public void debugDeathLogTable() {
         if (db == null) return;
         db.debugDeathLogTable();
+    }
+
+    public void debugConfigTable() {
+        if (db == null) return;
+        db.debugConfigTable();
     }
 }

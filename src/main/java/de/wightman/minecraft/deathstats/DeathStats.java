@@ -6,6 +6,7 @@ import de.wightman.minecraft.deathstats.event.OverlayUpdateEvent;
 import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.ConfigScreen;
 import de.wightman.minecraft.deathstats.gui.TopDeathStatsScreen;
+import de.wightman.minecraft.deathstats.record.DeathRecord;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
@@ -43,6 +44,8 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.*;
 
+import static de.wightman.minecraft.deathstats.record.DeathRecord.NOT_SET;
+
 @Mod(DeathStats.MOD_ID)
 @Mod.EventBusSubscriber(value = Dist.CLIENT)
 public class DeathStats {
@@ -55,8 +58,8 @@ public class DeathStats {
 
     private boolean isHighScore = false;
 
-    private static final String KEY_MAX = "session_death_max";
-    private static final String KEY_IS_VISIBLE = "is_visible";
+    public static final String KEY_MAX = "session_death_max";
+    public static final String KEY_IS_VISIBLE = "is_visible";
 
     // the name of the sessions created when people start and end their world
     public static final String DEFAULT_SESSION = "default";
@@ -79,8 +82,6 @@ public class DeathStats {
     @OnlyIn(Dist.CLIENT)
     private void init() {
         LOGGER.info("Starting DeathStats");
-
-        String home = System.getProperty("user.home");
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -263,7 +264,7 @@ public class DeathStats {
 
         LOGGER.info("logDeath({},{},{},{},{})", worldName, dimension, deathMessageKey, killedByKey, killedByName);
 
-        DeathRecord dr = new DeathRecord(worldName, dimension, deathMessageKey, killedByKey, killedByName, argb);
+        DeathRecord dr = new DeathRecord(NOT_SET, worldName, dimension, deathMessageKey, killedByKey, killedByName, argb, System.currentTimeMillis());
 
         try {
             db.newDeath(dr);

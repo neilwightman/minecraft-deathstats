@@ -1,6 +1,6 @@
 package de.wightman.minecraft.deathstats.db;
 
-import de.wightman.minecraft.deathstats.DeathRecord;
+import de.wightman.minecraft.deathstats.record.DeathRecord;
 import de.wightman.minecraft.deathstats.util.Timer;
 import de.wightman.minecraft.deathstats.gui.TopDeathStatsScreen;
 import org.jetbrains.annotations.NotNull;
@@ -11,8 +11,10 @@ import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * @since 2.0.0
@@ -21,10 +23,12 @@ public class DeathsDB {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathsDB.class);
 
-    private Connection conn;
-    private final Path path;
+    protected @Nullable Connection conn;
+    protected final Path path;
 
     public DeathsDB(final Path dbFile) throws SQLException {
+        Objects.requireNonNull(dbFile, "dbFile cannot be null");
+
         // Need to force load the class as jarjar doesnt load the services from the jar.
         try {
             Class.forName("org.sqlite.JDBC");
@@ -63,6 +67,8 @@ public class DeathsDB {
         return path;
     }
 
+    // NOTE: The date and time functions use UTC or "zulu" time internally, and so the "Z" suffix is a no-op
+
     private static void createSessionTable(final Connection conn) throws SQLException {
         String createSessionSql = """
                 CREATE TABLE IF NOT EXISTS SESSION (
@@ -78,40 +84,39 @@ public class DeathsDB {
     }
 
     public void startSession(final String sessionName) throws SQLException {
-        if (conn != null) {
-            endSession(sessionName);
-            final String insertSql = "INSERT INTO SESSION(name) VALUES(?)";
-            final PreparedStatement pstmt = conn.prepareStatement(insertSql);
-            pstmt.setString(1, sessionName);
-            pstmt.executeUpdate();
-        }
+        if (conn == null) return;
+
+        endSession(sessionName);
+        final String insertSql = "INSERT INTO SESSION(name) VALUES(?)";
+        final PreparedStatement pstmt = conn.prepareStatement(insertSql);
+        pstmt.setString(1, sessionName);
+        pstmt.executeUpdate();
+
         debugSessionTable();
     }
 
     public void endSession(final String sessionName) throws SQLException {
-        if (conn != null) {
-            debugSessionTable();
-            // prepared statement fails here for some reason.
-            final String setAllEndDates = "UPDATE SESSION SET END = DateTime('now') WHERE NAME = ? AND END IS NULL";
-            try (final PreparedStatement pstmt = conn.prepareStatement(setAllEndDates)) {
-                pstmt.setString(1, sessionName);
-                pstmt.executeUpdate();
-            }
+        if (conn == null) return;
+
+        debugSessionTable();
+        final String setAllEndDates = "UPDATE SESSION SET END = DateTime('now') WHERE NAME = ? AND END IS NULL";
+        try (final PreparedStatement pstmt = conn.prepareStatement(setAllEndDates)) {
+            pstmt.setString(1, sessionName);
+            pstmt.executeUpdate();
         }
 
         debugSessionTable();
     }
 
     public void debugSessionTable() {
+        if (conn == null) return;
         if (LOGGER.isDebugEnabled()) {
-            if (conn != null) {
-                final String selectSql = "SELECT * FROM SESSION";
-                try (final Statement stmt = conn.createStatement()) {
-                    final ResultSet rs = stmt.executeQuery(selectSql);
-                    dumpResultSet(rs);
-                } catch (SQLException e) {
-                    LOGGER.warn("Failed to query death log", e);
-                }
+            final String selectSql = "SELECT * FROM SESSION";
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery(selectSql);
+                dumpResultSet(rs);
+            } catch (SQLException e) {
+                LOGGER.warn("Failed to query death log", e);
             }
         }
     }
@@ -135,36 +140,40 @@ public class DeathsDB {
     }
 
     public void newDeath(final DeathRecord record) throws SQLException {
-        if (conn != null) {
-            final String insertSql = "INSERT INTO DEATH_LOG(WORLD,DIMENSION,MESSAGE,KILLED_BY_KEY,KILLED_BY_STR,ARGB) VALUES(?,?,?,?,?,?)";
-            final PreparedStatement pstmt = conn.prepareStatement(insertSql);
-            pstmt.setString(1, record.world);
-            pstmt.setString(2, record.dimension);
-            pstmt.setString(3, record.deathMessage);
-            pstmt.setString(4, record.killedByKey);
-            pstmt.setString(5, record.killedByStr);
-            pstmt.setInt(6, record.argb);
-            pstmt.executeUpdate();
-        }
+        if (conn == null) return;
+
+        final String insertSql = "INSERT INTO DEATH_LOG(WORLD,DIMENSION,MESSAGE,KILLED_BY_KEY,KILLED_BY_STR,ARGB) VALUES(?,?,?,?,?,?)";
+        final PreparedStatement pstmt = conn.prepareStatement(insertSql);
+        pstmt.setString(1, record.world());
+        pstmt.setString(2, record.dimension());
+        pstmt.setString(3, record.deathMessage());
+        pstmt.setString(4, record.killedByKey());
+        pstmt.setString(5, record.killedByStr());
+        pstmt.setInt(6, record.argb());
+        // Converting from java time to sql timestamp is slow and "now" in sqlite is close enough.
+        //pstmt.setLong(7, record.ts()); // use sqllite auto generation, its close enough
+        pstmt.executeUpdate();
 
         debugDeathLogTable();
     }
 
     public void debugDeathLogTable() {
+        if (conn == null) return;
+
         if (LOGGER.isDebugEnabled()) {
-            if (conn != null) {
-                final String selectSql = "SELECT * FROM DEATH_LOG";
-                try (final Statement stmt = conn.createStatement()) {
-                    final ResultSet rs = stmt.executeQuery(selectSql);
-                    dumpResultSet(rs);
-                } catch (SQLException e) {
-                    LOGGER.warn("Failed to query death log", e);
-                }
+            final String selectSql = "SELECT * FROM DEATH_LOG";
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery(selectSql);
+                dumpResultSet(rs);
+            } catch (SQLException e) {
+                LOGGER.warn("Failed to query death log", e);
             }
         }
     }
 
-    private void dumpResultSet(final ResultSet rs) {
+    private void dumpResultSet(final @NotNull ResultSet rs) {
+        Objects.requireNonNull(rs, "rs cannot be null");
+
         try {
             final int cols = rs.getMetaData().getColumnCount();
             while (rs.next()) {
@@ -182,6 +191,8 @@ public class DeathsDB {
     }
 
     public long getActiveDeathsSession(final String sessionName) {
+        if (conn == null) return -1;
+
         final String sql = """
                 SELECT COUNT(*) AS DEATHS FROM DEATH_LOG
                  WHERE TIME > (SELECT START FROM SESSION WHERE NAME = ? ORDER BY START DESC LIMIT 1)
@@ -199,6 +210,8 @@ public class DeathsDB {
     }
 
     public long getMaxDeathsPerSession(final String sessionName) {
+        if (conn == null) return -1;
+
         final String sql = """
                 SELECT SESSION.ID,SESSION.START,COUNT(SESSION.ID) AS DEATHS FROM 'SESSION' 
                 JOIN 'DEATH_LOG' ON DEATH_LOG.TIME > SESSION.START  
@@ -219,6 +232,8 @@ public class DeathsDB {
     }
 
     public List<Long> getDeathsPerSession(final int sessionId) {
+        if (conn == null) return Collections.EMPTY_LIST;
+
         final String sql = """
                 SELECT SESSION.ID,SESSION.START,SESSION.END,DEATH_LOG.TIME AS TIME FROM 'SESSION' 
                 JOIN 'DEATH_LOG' ON DEATH_LOG.TIME > SESSION.START 
@@ -242,6 +257,9 @@ public class DeathsDB {
     }
 
     public int getActiveSessionId() {
+        if (conn == null) return -1;
+
+        // TODO pass in name as arg for tests
         final String sql = "SELECT ID FROM SESSION WHERE NAME = 'default' AND END IS NULL";
         try (final Statement stmt = conn.createStatement()) {
             final ResultSet rs = stmt.executeQuery(sql);
@@ -255,6 +273,8 @@ public class DeathsDB {
     }
 
     public List<TopDeathStatsScreen.DeathLeaderBoardEntry> getLeaderBoardForSession(final int sessionId) {
+        if (conn == null) return Collections.EMPTY_LIST;
+
         final List<TopDeathStatsScreen.DeathLeaderBoardEntry> entries = new ArrayList<>();
 
         // TODO include max rows maybe pagination
@@ -291,13 +311,15 @@ public class DeathsDB {
     /**
      * Deletes the current session and sets the last closed session as opened again.
      */
-    public void resumeLastSession() {
+    public void resumeLastSession( /* TODO Add session name */) {
+        if (conn == null) return;
+
         debugSessionTable();  // TODO remove
 
         // delete active session
-        final String CLOSE_ACTIVE = "delete from session where id = (select max(id) from session);";
+        final String CLOSE_ACTIVE = "DELETE FROM SESSION WHERE ID = (SELECT MAX(ID) FROM SESSION);";
         // reopen last session
-        final String REOPEN_OLD = "update session set end = null where id = ( select id from session where end is not null order by start desc limit 1 )";
+        final String REOPEN_OLD = "UPDATE SESSION SET END = NULL WHERE ID = ( SELECT ID FROM SESSION WHERE END IS NOT NULL ORDER BY START DESC LIMIT 1 )";
 
         try {
             final boolean oldAutoCommit = conn.getAutoCommit();
@@ -340,31 +362,34 @@ public class DeathsDB {
     }
 
     public void debugConfigTable() {
+        if (conn == null) return;
+
         if (LOGGER.isDebugEnabled()) {
-            if (conn != null) {
-                try ( var timer = new Timer("debugConfigTable")) {
-                    final String selectSql = "SELECT * FROM CONFIG";
-                    try (final Statement stmt = conn.createStatement()) {
-                        final ResultSet rs = stmt.executeQuery(selectSql);
-                        dumpResultSet(rs);
-                    } catch (SQLException e) {
-                        LOGGER.warn("Failed to query death log", e);
-                    }
+            try ( var timer = new Timer("debugConfigTable")) {
+                final String selectSql = "SELECT * FROM CONFIG";
+                try (final Statement stmt = conn.createStatement()) {
+                    final ResultSet rs = stmt.executeQuery(selectSql);
+                    dumpResultSet(rs);
+                } catch (SQLException e) {
+                    LOGGER.warn("Failed to query death log", e);
                 }
             }
         }
     }
 
-    public void setConfig(final String key, final String value) throws SQLException {
-        if (conn != null) {
-            try ( var timer = new Timer("setConfig")) {
-                final String insertSql = "INSERT INTO CONFIG(KEY,VALUE) VALUES(?,?) ON CONFLICT(KEY) DO UPDATE SET VALUE = ?";
-                try (final PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
-                    pstmt.setString(1, key);
-                    pstmt.setString(2, value);
-                    pstmt.setString(3, value);
-                    pstmt.executeUpdate();
-                }
+    public void setConfig(final @NotNull String key, final @NotNull String value) throws SQLException {
+        if (conn == null) return;
+
+        Objects.requireNonNull(key, "key cannot be null");
+        Objects.requireNonNull(value, "value cannot be null");
+
+        try ( var timer = new Timer("setConfig")) {
+            final String insertSql = "INSERT INTO CONFIG(KEY,VALUE) VALUES(?,?) ON CONFLICT(KEY) DO UPDATE SET VALUE = ?";
+            try (final PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                pstmt.setString(1, key);
+                pstmt.setString(2, value);
+                pstmt.setString(3, value);
+                pstmt.executeUpdate();
             }
         }
     }

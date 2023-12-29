@@ -1,16 +1,8 @@
 # Death Stats
 
- A client side mod which tracks deaths over time and provides graphs and additional statistics.
+A client side mod which tracks deaths over time and provides graphs and additional statistics.
 
- All rights reserved.
-
- Its WIP still and currently only tracks a death counter right now and max deaths.
- 
- Deaths are tracked (after respawn button is pressed) over time.  
- 
-You can reset the counter (based on session, twitch stream session, raid, day, month etc) by using the ```/deathstats set current 0```
- If you want to reset everything you can either ```/deathstats set max 0``` and ```/deathstats set current 0```
-or ```/deathstats reset```
+All rights reserved.
 
 ![alt text](images/deathstats_logo_1024.png)
 

@@ -1,6 +1,7 @@
 package de.wightman.minecraft.deathstats.db;
 
 import de.wightman.minecraft.deathstats.record.DeathRecord;
+import de.wightman.minecraft.deathstats.record.SessionRecord;
 import de.wightman.minecraft.deathstats.util.Timer;
 import de.wightman.minecraft.deathstats.gui.TopDeathStatsScreen;
 import org.jetbrains.annotations.NotNull;
@@ -14,7 +15,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
+
+import static de.wightman.minecraft.deathstats.record.DeathRecord.NOT_SET;
 
 /**
  * @since 2.0.0
@@ -83,29 +85,66 @@ public class DeathsDB {
         }
     }
 
-    public void startSession(final String sessionName) throws SQLException {
-        if (conn == null) return;
+    public int startSession(final String sessionName) throws SQLException {
+        if (conn == null) return -1;
 
         endSession(sessionName);
-        final String insertSql = "INSERT INTO SESSION(name) VALUES(?)";
-        final PreparedStatement pstmt = conn.prepareStatement(insertSql);
-        pstmt.setString(1, sessionName);
-        pstmt.executeUpdate();
-
-        debugSessionTable();
+        final String insertSql = "INSERT INTO SESSION(name) VALUES(?) RETURNING ID";
+        try (final PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+            pstmt.setString(1, sessionName);
+            ResultSet rs = pstmt.executeQuery();
+            int id = rs.getInt("ID");
+            return id;
+        }
     }
 
     public void endSession(final String sessionName) throws SQLException {
         if (conn == null) return;
 
-        debugSessionTable();
         final String setAllEndDates = "UPDATE SESSION SET END = DateTime('now') WHERE NAME = ? AND END IS NULL";
         try (final PreparedStatement pstmt = conn.prepareStatement(setAllEndDates)) {
             pstmt.setString(1, sessionName);
             pstmt.executeUpdate();
         }
+    }
 
-        debugSessionTable();
+    /**
+     * Returns the sessions from most current going backwards, offset should default to current session.
+     * @param sessionName the session name e.g. DeathStats.DEFAULT_SESSION
+     * @param pageSize the number of sessions to return
+     * @param offset the ID of the session to start from, this session will be included in the result.
+     */
+    public List<SessionRecord> getSessions(final String sessionName, final int pageSize, final int offset) throws SQLException {
+        if (conn == null) return Collections.EMPTY_LIST;
+
+        final List<SessionRecord> entries = new ArrayList<>();
+
+        // TODO include max rows maybe pagination
+        final String sql = """
+                    SELECT * FROM SESSION
+                    WHERE NAME = ?
+                    AND ID <= ? 
+                    ORDER BY START DESC LIMIT ?
+                """;
+        try (final PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, sessionName);
+            pstmt.setInt(2, offset);
+            pstmt.setInt(3, pageSize);
+            final ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                int id = rs.getInt("ID");
+                Timestamp start = rs.getTimestamp("START");
+                Timestamp end = rs.getTimestamp("END");
+                String name = rs.getString("NAME");
+                SessionRecord session = new SessionRecord(id,start.getTime(), end == null ? NOT_SET : end.getTime(), name);
+                entries.add(session);
+            }
+        } catch (SQLException e) {
+            LOGGER.warn("Failed to query active session id", e);
+        }
+
+        return entries;
     }
 
     public void debugSessionTable() {
@@ -142,19 +181,17 @@ public class DeathsDB {
     public void newDeath(final DeathRecord record) throws SQLException {
         if (conn == null) return;
 
-        final String insertSql = "INSERT INTO DEATH_LOG(WORLD,DIMENSION,MESSAGE,KILLED_BY_KEY,KILLED_BY_STR,ARGB) VALUES(?,?,?,?,?,?)";
-        final PreparedStatement pstmt = conn.prepareStatement(insertSql);
-        pstmt.setString(1, record.world());
-        pstmt.setString(2, record.dimension());
-        pstmt.setString(3, record.deathMessage());
-        pstmt.setString(4, record.killedByKey());
-        pstmt.setString(5, record.killedByStr());
-        pstmt.setInt(6, record.argb());
-        // Converting from java time to sql timestamp is slow and "now" in sqlite is close enough.
-        //pstmt.setLong(7, record.ts()); // use sqllite auto generation, its close enough
-        pstmt.executeUpdate();
-
-        debugDeathLogTable();
+        final String insertSql = "INSERT INTO DEATH_LOG(WORLD,DIMENSION,MESSAGE,KILLED_BY_KEY,KILLED_BY_STR,ARGB,TIME) VALUES(?,?,?,?,?,?,datetime(?,'unixepoch'))";
+        try (final PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+            pstmt.setString(1, record.world());
+            pstmt.setString(2, record.dimension());
+            pstmt.setString(3, record.deathMessage());
+            pstmt.setString(4, record.killedByKey());
+            pstmt.setString(5, record.killedByStr());
+            pstmt.setInt(6, record.argb());
+            pstmt.setLong(7, record.ts());
+            pstmt.executeUpdate();
+        }
     }
 
     public void debugDeathLogTable() {
@@ -231,7 +268,10 @@ public class DeathsDB {
         return 0;
     }
 
-    public List<Long> getDeathsPerSession(final int sessionId) {
+    /**
+     * This method returns just the timestamp, linux expoch (in milliseconds), of each death in this session.
+     */
+    public List<Long> getTimeOfDeathsPerSession(final int sessionId) {
         if (conn == null) return Collections.EMPTY_LIST;
 
         final String sql = """
@@ -256,13 +296,13 @@ public class DeathsDB {
         return dates;
     }
 
-    public int getActiveSessionId() {
+    public int getActiveSessionId(final String sessionName) {
         if (conn == null) return -1;
 
-        // TODO pass in name as arg for tests
-        final String sql = "SELECT ID FROM SESSION WHERE NAME = 'default' AND END IS NULL";
-        try (final Statement stmt = conn.createStatement()) {
-            final ResultSet rs = stmt.executeQuery(sql);
+        final String sql = "SELECT ID FROM SESSION WHERE NAME = ? AND END IS NULL";
+        try (final PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, sessionName);
+            final ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
                 return rs.getInt("ID");
             }
@@ -314,8 +354,6 @@ public class DeathsDB {
     public void resumeLastSession( /* TODO Add session name */) {
         if (conn == null) return;
 
-        debugSessionTable();  // TODO remove
-
         // delete active session
         final String CLOSE_ACTIVE = "DELETE FROM SESSION WHERE ID = (SELECT MAX(ID) FROM SESSION);";
         // reopen last session
@@ -341,7 +379,6 @@ public class DeathsDB {
         } catch (SQLException sqlException) {
             throw new RuntimeException(sqlException);
         }
-        debugSessionTable();  // TODO remove
     }
 
     // Allow a max to be set

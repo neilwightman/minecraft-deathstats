@@ -64,6 +64,12 @@ public class TopDeathStatsWidget extends ObjectSelectionList<TopDeathStatsWidget
         return this.listWidth;
     }
 
+    @Override
+    public boolean mouseClicked(double p_93420_, double p_93421_, int p_93422_) {
+        // Handle selection for session selection
+        return super.mouseClicked(p_93420_, p_93421_, p_93422_);
+    }
+
     public class TopDeathStatWidgetEntry extends ObjectSelectionList.Entry<TopDeathStatWidgetEntry>{
 
         private final String name;

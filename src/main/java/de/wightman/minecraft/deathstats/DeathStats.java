@@ -7,6 +7,7 @@ import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
 import de.wightman.minecraft.deathstats.gui.ConfigScreen;
 import de.wightman.minecraft.deathstats.gui.TopDeathStatsScreen;
 import de.wightman.minecraft.deathstats.record.DeathRecord;
+import de.wightman.minecraft.deathstats.record.SessionRecord;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
@@ -230,6 +231,7 @@ public class DeathStats {
     public void onLeave(ClientPlayerNetworkEvent.LoggingOut event) {
         LOGGER.info("onLeave({})", event.getPlayer());
         endSession();
+        // TODO set overlays values to default if someone rejoins a different server
     }
 
     private void updateHighScore() {
@@ -264,7 +266,7 @@ public class DeathStats {
 
         LOGGER.info("logDeath({},{},{},{},{})", worldName, dimension, deathMessageKey, killedByKey, killedByName);
 
-        DeathRecord dr = new DeathRecord(NOT_SET, worldName, dimension, deathMessageKey, killedByKey, killedByName, argb, System.currentTimeMillis());
+        DeathRecord dr = new DeathRecord(NOT_SET, worldName, dimension, deathMessageKey, killedByKey, killedByName, argb, System.currentTimeMillis() / 1000);
 
         try {
             db.newDeath(dr);
@@ -338,12 +340,27 @@ public class DeathStats {
 
     public List<Long> getDeathsPerSession(final int sessionId) {
         if (db == null) return Collections.emptyList();
-        return db.getDeathsPerSession(sessionId);
+        return db.getTimeOfDeathsPerSession(sessionId);
     }
 
     public int getActiveSessionId() {
         if (db == null) return -1;
-        return db.getActiveSessionId();
+        return db.getActiveSessionId(DEFAULT_SESSION);
+    }
+
+    public SessionRecord getSession(int id) {
+        if (db == null) return null;
+        try {
+            List<SessionRecord> session = db.getSessions(DEFAULT_SESSION, 1, id);
+
+            if (!session.isEmpty()) {
+                return session.get(0);
+            }
+        } catch (SQLException sqlException) {
+            LOGGER.warn("Cannot get active session in the db", sqlException);
+        }
+
+        return null;
     }
 
     public List<TopDeathStatsScreen.DeathLeaderBoardEntry> getLeaderBoardForSession(final int sessionId) {

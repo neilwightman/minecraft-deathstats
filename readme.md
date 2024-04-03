@@ -69,6 +69,14 @@ DeathStats by mnkybrdr
 /deathstats reset - sets max and current to 0
 ```
 
+## Named mobs and colors
+
+https://www.gamergeeks.net/apps/minecraft/mob-generator/summon-zombie
+
+```
+/summon zombie ~ ~ ~ {CustomName:'[{"text":"Zoidberg","color":"dark_red","bold":true}]'}
+```
+
 ## Build
 
 ```bash
@@ -76,3 +84,4 @@ java17
 ./gradlew genIntellijRuns
 ./gradlew build
 ```
+

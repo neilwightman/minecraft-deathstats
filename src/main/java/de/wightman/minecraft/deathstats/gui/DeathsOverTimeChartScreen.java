@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.math.Axis;
 import de.wightman.minecraft.deathstats.DeathStats;
+import de.wightman.minecraft.deathstats.record.SessionRecord;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -14,16 +15,17 @@ import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.NumberTickUnit;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.ui.RectangleInsets;
-import org.jfree.data.time.Millisecond;
-import org.jfree.data.time.TimeSeries;
-import org.jfree.data.time.TimeSeriesCollection;
+import org.jfree.data.Range;
+import org.jfree.data.time.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -69,6 +71,19 @@ public class DeathsOverTimeChartScreen extends Screen {
 
         if (texture == null) {
             updateChartTexture(this.width, this.height);
+        }
+
+        if (texture == null) {
+            // Make utility so we can resuse this screen.
+
+            // No Deaths so show this.
+            guiGraphics.pose().pushPose();
+            guiGraphics.drawCenteredString(this.font, "No deaths",
+                    this.width / 2, (this.height /2) - 30, 0xFFFFFF);
+            guiGraphics.pose().popPose();
+
+            // TODO add close button too
+            return;
         }
 
         Minecraft.getInstance().getTextureManager().bindForSetup(borderLocation);
@@ -204,6 +219,8 @@ public class DeathsOverTimeChartScreen extends Screen {
     private void updateChartTexture(int width, int height) {
         long start = System.currentTimeMillis();
         JFreeChart chart = createChart(createDataset());
+        if (chart == null) return;
+
         double scale = this.minecraft.getWindow().getGuiScale();
         BufferedImage image = chart.createBufferedImage((int) (width * scale) - 32, (int) (height * scale) - 32);
         try {
@@ -235,7 +252,9 @@ public class DeathsOverTimeChartScreen extends Screen {
         return null;
     }
 
-    public JFreeChart createChart(TimeSeriesCollection dataset) {
+    public @Nullable JFreeChart createChart(TimeSeriesCollection dataset) {
+        if (dataset == null) return null;
+
         JFreeChart chart = ChartFactory.createTimeSeriesChart(
                 "",            // title
                 " ",             // x-axis label
@@ -245,6 +264,24 @@ public class DeathsOverTimeChartScreen extends Screen {
                 false,              // generate tooltips?
                 false               // generate URLs?
         );
+
+        TimeSeries series = dataset.getSeries(0);
+        int cnt = series.getItemCount();
+        Number maxDeaths = 0.0;
+
+        if (cnt > 0) {
+            TimeSeriesDataItem last = series.getDataItem(cnt - 1);
+
+            RegularTimePeriod endDate = last.getPeriod();
+            maxDeaths = last.getValue();
+
+            TimeSeriesDataItem first = series.getDataItem(0);
+            RegularTimePeriod startDate = first.getPeriod();
+            System.out.println(startDate);
+            System.out.println(endDate);
+        }
+
+        System.out.println(maxDeaths);
 
         //Minecraft gray inv color C6C6C6
         Color lightGray = Color.decode("#C6C6C6");
@@ -281,16 +318,27 @@ public class DeathsOverTimeChartScreen extends Screen {
         timeAxis.setAxisLinePaint(Color.black);
         timeAxis.setAutoRange(true);
         timeAxis.setAutoTickUnitSelection(true);
+        timeAxis.setLowerMargin(0.0);
 
+        double deathTickUnit = calculateTickCount( maxDeaths.intValue());
         NumberAxis deathAxis = (NumberAxis) plot.getRangeAxis();
         DecimalFormat decimalFormatter = new DecimalFormat("0");
         deathAxis.setNumberFormatOverride(decimalFormatter);
-        deathAxis.setAutoRange(true);
-        deathAxis.setAutoTickUnitSelection(true);
+        deathAxis.setAutoRange(false);
+        deathAxis.setAutoTickUnitSelection(false);
         deathAxis.setLabelFont(minecraftFont);
         deathAxis.setTickLabelFont(minecraftFont);
         deathAxis.setTickLabelPaint(Color.black);
         deathAxis.setAxisLinePaint(Color.black);
+        deathAxis.setLowerMargin(0.0);
+
+        if (maxDeaths.intValue() > 0) {
+            // Ensure we have a tick visible above the last death.
+            double ticks = maxDeaths.intValue() / deathTickUnit;
+            double upperTickCount = Math.ceil(ticks);
+            deathAxis.setRangeWithMargins(new Range(0.0, upperTickCount * deathTickUnit));
+        }
+        deathAxis.setTickUnit( new NumberTickUnit( deathTickUnit ));
 
         // TODO green for start session, red for end.
 //        TimeSeries s1 = dataset.getSeries(0);
@@ -306,11 +354,23 @@ public class DeathsOverTimeChartScreen extends Screen {
         return chart;
     }
 
-    public static TimeSeriesCollection createDataset() {
+    public static double calculateTickCount( int range ) {
+        double approximateInterval = (double) range / 10.0;
+        int interval = (int) Math.ceil(approximateInterval);
+        return (double)Math.max(1, interval);
+    }
+
+    public static @Nullable TimeSeriesCollection createDataset() {
         final TimeSeries s1 = new TimeSeries("Deaths");
 
         int sessionId = DeathStats.getInstance().getActiveSessionId();
+        SessionRecord active = DeathStats.getInstance().getSession(sessionId);
         List<Long> res = DeathStats.getInstance().getDeathsPerSession(sessionId);
+
+        if (res.isEmpty()) return null;
+
+        // need to add session start
+        s1.add(new Millisecond(new Date(active.start())), 0);
 
         int count = 0;
         for (Long ts : res) {
@@ -319,12 +379,6 @@ public class DeathsOverTimeChartScreen extends Screen {
 
         TimeSeriesCollection dataset = new TimeSeriesCollection();
         dataset.addSeries(s1);
-
-        /**
-         * TODO Need a second series for times game started and ended.
-         * To attach the annotations too
-         */
-
 
         return dataset;
     }

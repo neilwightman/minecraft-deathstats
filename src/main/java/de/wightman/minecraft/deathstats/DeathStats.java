@@ -134,6 +134,8 @@ public class DeathStats {
             }
 
             LOGGER.debug("startSession {} {} {}", Minecraft.getInstance().player, Minecraft.getInstance().level, worldName);
+
+            triggerOverlayUpdateEvent();  // need to update overlay if its already initalised from a different world.  It caches.
         } catch (SQLException exception) {
             LOGGER.error("Cannot open sqlite3 db", exception);
             MutableComponent c = Component.literal("ERROR: Cannot open sqlite3 db\nError:%s".formatted(exception.getMessage()));
@@ -231,7 +233,6 @@ public class DeathStats {
     public void onLeave(ClientPlayerNetworkEvent.LoggingOut event) {
         LOGGER.info("onLeave({})", event.getPlayer());
         endSession();
-        // TODO set overlays values to default if someone rejoins a different server
     }
 
     private void updateHighScore() {

@@ -51,3 +51,5 @@ select count(*),message, killedbykey from death_log group by message, killedbyke
 -- could limit to top n
 
 select count(*) as cnt, message, killedbykey, killedbystr, min(argb) from death_log group by message, killedbykey, killedbystr order by cnt desc;
+
+.headers ON

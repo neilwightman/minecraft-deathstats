@@ -16,12 +16,16 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.ui.RectangleInsets;
 import org.jfree.data.Range;
 import org.jfree.data.time.*;
+import org.jfree.data.xy.XYDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,10 +38,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 import static com.mojang.blaze3d.platform.NativeImage.Format.RGBA;
 
@@ -73,18 +78,18 @@ public class DeathsOverTimeChartScreen extends Screen {
             updateChartTexture(this.width, this.height);
         }
 
-        if (texture == null) {
-            // Make utility so we can resuse this screen.
-
-            // No Deaths so show this.
-            guiGraphics.pose().pushPose();
-            guiGraphics.drawCenteredString(this.font, "No deaths",
-                    this.width / 2, (this.height /2) - 30, 0xFFFFFF);
-            guiGraphics.pose().popPose();
-
-            // TODO add close button too
-            return;
-        }
+//        if (texture == null) {
+//            // Make utility so we can resuse this screen.
+//
+//            // No Deaths so show this.
+//            guiGraphics.pose().pushPose();
+//            guiGraphics.drawCenteredString(this.font, "No deaths",
+//                    this.width / 2, (this.height /2) - 30, 0xFFFFFF);
+//            guiGraphics.pose().popPose();
+//
+//            // TODO add close button too
+//            return;
+//        }
 
         Minecraft.getInstance().getTextureManager().bindForSetup(borderLocation);
 
@@ -252,36 +257,46 @@ public class DeathsOverTimeChartScreen extends Screen {
         return null;
     }
 
-    public @Nullable JFreeChart createChart(TimeSeriesCollection dataset) {
+    public @Nullable JFreeChart createChart(XYDataset dataset) {
         if (dataset == null) return null;
 
-        JFreeChart chart = ChartFactory.createTimeSeriesChart(
+        JFreeChart chart = ChartFactory.createXYStepChart(
                 "",            // title
-                " ",             // x-axis label
-                " ",           // y-axis label
+                " ",                // x-axis label
+                " ",                // y-axis label
                 dataset,            // data
+                PlotOrientation.VERTICAL, // orientation
                 false,              // create legend?
                 false,              // generate tooltips?
                 false               // generate URLs?
         );
 
-        TimeSeries series = dataset.getSeries(0);
-        int cnt = series.getItemCount();
-        Number maxDeaths = 0.0;
-
-        if (cnt > 0) {
-            TimeSeriesDataItem last = series.getDataItem(cnt - 1);
-
-            RegularTimePeriod endDate = last.getPeriod();
-            maxDeaths = last.getValue();
-
-            TimeSeriesDataItem first = series.getDataItem(0);
-            RegularTimePeriod startDate = first.getPeriod();
-            System.out.println(startDate);
-            System.out.println(endDate);
+        int cnt = dataset.getItemCount(0);
+        if (cnt <= 1) {
+            throw new IllegalStateException("dataset should always contain at least 0 at start of session and count and end/now.");
         }
 
-        System.out.println(maxDeaths);
+        Number maxDeaths = dataset.getYValue(0, cnt -1);
+
+        double startTs = dataset.getXValue(0, 0);
+        double endTs = dataset.getXValue(0, cnt - 1);
+
+        LocalDateTime startDateTime =
+                Instant.ofEpochMilli((long)startTs).atZone(ZoneId.systemDefault()).toLocalDateTime();
+
+        LocalDateTime endDateTime =
+                Instant.ofEpochMilli((long)endTs).atZone(ZoneId.systemDefault()).toLocalDateTime();
+
+        long deltaDay = startDateTime.until(endDateTime, ChronoUnit.DAYS);
+        long deltaHours = startDateTime.until(endDateTime, ChronoUnit.HOURS);
+        long deltaMins = startDateTime.until(endDateTime, ChronoUnit.MINUTES);
+
+        String dateFormatter = "d/MM HH:mm";  // customise
+        if (deltaDay == 0) {
+            dateFormatter = "HH:mm";
+        } else if (deltaHours == 0) {
+            dateFormatter = "mm";
+        }
 
         //Minecraft gray inv color C6C6C6
         Color lightGray = Color.decode("#C6C6C6");
@@ -295,8 +310,8 @@ public class DeathsOverTimeChartScreen extends Screen {
 
         XYPlot plot = (XYPlot) chart.getPlot();
         plot.setBackgroundPaint(lightGray);
-        plot.setDomainGridlinePaint(lightGray);
-        plot.setRangeGridlinePaint(lightGray);
+        //plot.setDomainGridlinePaint(lightGray); // customise
+        //plot.setRangeGridlinePaint(lightGray);
         plot.setOutlinePaint(Color.black);
         plot.setAxisOffset(new RectangleInsets(1.0, 1.0, 1.0, 1.0));
         plot.setDomainCrosshairVisible(true);
@@ -311,7 +326,7 @@ public class DeathsOverTimeChartScreen extends Screen {
         }
 
         DateAxis timeAxis = (DateAxis) plot.getDomainAxis();
-        timeAxis.setDateFormatOverride(new SimpleDateFormat("d/MM HH:mm"));
+        timeAxis.setDateFormatOverride(new SimpleDateFormat(dateFormatter));
         timeAxis.setLabelFont(minecraftFont);
         timeAxis.setTickLabelFont(minecraftFont);
         timeAxis.setTickLabelPaint(Color.black);
@@ -319,6 +334,7 @@ public class DeathsOverTimeChartScreen extends Screen {
         timeAxis.setAutoRange(true);
         timeAxis.setAutoTickUnitSelection(true);
         timeAxis.setLowerMargin(0.0);
+        timeAxis.setLocale(Locale.getDefault());
 
         double deathTickUnit = calculateTickCount( maxDeaths.intValue());
         NumberAxis deathAxis = (NumberAxis) plot.getRangeAxis();
@@ -332,15 +348,14 @@ public class DeathsOverTimeChartScreen extends Screen {
         deathAxis.setAxisLinePaint(Color.black);
         deathAxis.setLowerMargin(0.0);
 
-        if (maxDeaths.intValue() > 0) {
-            // Ensure we have a tick visible above the last death.
-            double ticks = maxDeaths.intValue() / deathTickUnit;
-            double upperTickCount = Math.ceil(ticks);
-            deathAxis.setRangeWithMargins(new Range(0.0, upperTickCount * deathTickUnit));
-        }
+        // Ensure we have a tick visible above the last death.
+        double ticks = maxDeaths.intValue() / deathTickUnit;
+        double upperTickCount = Math.ceil(ticks);
+        deathAxis.setRangeWithMargins(new Range(0.0, upperTickCount == 0 ? 1 : upperTickCount * deathTickUnit));
+
         deathAxis.setTickUnit( new NumberTickUnit( deathTickUnit ));
 
-        // TODO green for start session, red for end.
+        // TODO line for hype train start end etc.
 //        TimeSeries s1 = dataset.getSeries(0);
 //        double maxY = s1.getMaxY();
 //        long x = s1.getTimePeriod(5).getFirstMillisecond();
@@ -360,24 +375,26 @@ public class DeathsOverTimeChartScreen extends Screen {
         return (double)Math.max(1, interval);
     }
 
-    public static @Nullable TimeSeriesCollection createDataset() {
-        final TimeSeries s1 = new TimeSeries("Deaths");
+    public static @Nullable XYDataset createDataset() {
+        final XYSeries s1 = new XYSeries("Deaths");
 
         int sessionId = DeathStats.getInstance().getActiveSessionId();
         SessionRecord active = DeathStats.getInstance().getSession(sessionId);
         List<Long> res = DeathStats.getInstance().getDeathsPerSession(sessionId);
 
-        if (res.isEmpty()) return null;
+        // TODO add checks for queries not working.
 
         // need to add session start
-        s1.add(new Millisecond(new Date(active.start())), 0);
+        s1.add(active.start(), 0);
 
         int count = 0;
         for (Long ts : res) {
-            s1.add(new Millisecond(new Date(ts)), ++count);
+            s1.add(ts.longValue(), ++count);
         }
 
-        TimeSeriesCollection dataset = new TimeSeriesCollection();
+        s1.add(System.currentTimeMillis(), count);
+
+        XYSeriesCollection dataset = new XYSeriesCollection();
         dataset.addSeries(s1);
 
         return dataset;

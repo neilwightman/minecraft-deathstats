@@ -11,10 +11,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static de.wightman.minecraft.deathstats.record.DeathRecord.NOT_SET;
 
@@ -121,7 +118,7 @@ public class DeathsDB {
 
         // TODO include max rows maybe pagination
         final String sql = """
-                    SELECT * FROM SESSION
+                    SELECT ID, datetime(START, 'localtime') AS START, datetime(END, 'localtime') AS END, NAME FROM SESSION
                     WHERE NAME = ?
                     AND ID <= ? 
                     ORDER BY START DESC LIMIT ?
@@ -275,7 +272,7 @@ public class DeathsDB {
         if (conn == null) return Collections.EMPTY_LIST;
 
         final String sql = """
-                SELECT SESSION.ID,SESSION.START,SESSION.END,DEATH_LOG.TIME AS TIME FROM 'SESSION' 
+                SELECT SESSION.ID,SESSION.START,SESSION.END,datetime(DEATH_LOG.TIME,'localtime') AS TIME FROM 'SESSION' 
                 JOIN 'DEATH_LOG' ON DEATH_LOG.TIME > SESSION.START 
                 AND (DEATH_LOG.TIME < SESSION.END OR SESSION.END IS NULL)
                 AND SESSION.ID = ?

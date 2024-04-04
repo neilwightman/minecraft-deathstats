@@ -94,6 +94,7 @@ public final class ConfigScreen extends Screen {
                 .pos((this.width + BUTTONS_INTERVAL) / 2,  this.height - BOTTOM_BUTTON_HEIGHT_OFFSET)
                 .size(BOTTOM_BUTTON_WIDTH, BUTTON_HEIGHT).build();
 
+        // TODO addRenderableWidget maybe
         this.addWidget(done);
     }
 

@@ -1,5 +1,6 @@
 package de.wightman.minecraft.deathstats.gui;
 
+import com.ibm.icu.text.DateFormat;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.math.Axis;
@@ -54,6 +55,10 @@ public class DeathsOverTimeChartScreen extends Screen {
 
     private final ResourceLocation chartLocation;
     private final ResourceLocation borderLocation;
+
+    private String minFormat;
+    private String hourFormat;
+    private String dayFormat;
     private DynamicTexture texture;
     private java.awt.Font minecraftFont = null;
 
@@ -67,6 +72,25 @@ public class DeathsOverTimeChartScreen extends Screen {
             this.minecraftFont = customFont.deriveFont(14f);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        minFormat = "mm";
+        hourFormat = "HH:mm";
+        dayFormat = "MM/dd HH:mm";
+
+        DateFormat min = DateFormat.getPatternInstance(DateFormat.HOUR24_MINUTE_SECOND);
+        if (min instanceof com.ibm.icu.text.SimpleDateFormat sdf) {
+            minFormat = sdf.toPattern();
+        }
+
+        DateFormat formater = DateFormat.getPatternInstance(DateFormat.HOUR24_MINUTE);
+        if (formater instanceof com.ibm.icu.text.SimpleDateFormat sdf) {
+            hourFormat = sdf.toPattern();
+        }
+
+        DateFormat day = DateFormat.getPatternInstance(DateFormat.NUM_MONTH_DAY);
+        if (day instanceof com.ibm.icu.text.SimpleDateFormat sdf) {
+            dayFormat = sdf.toPattern() + " " + hourFormat;
         }
     }
 
@@ -291,11 +315,13 @@ public class DeathsOverTimeChartScreen extends Screen {
         long deltaHours = startDateTime.until(endDateTime, ChronoUnit.HOURS);
         long deltaMins = startDateTime.until(endDateTime, ChronoUnit.MINUTES);
 
-        String dateFormatter = "d/MM HH:mm";  // customise
-        if (deltaDay == 0) {
-            dateFormatter = "HH:mm";
+        String dateFormatter = dayFormat;
+        if (deltaMins < 15) {
+            dateFormatter = minFormat;
         } else if (deltaHours == 0) {
-            dateFormatter = "mm";
+            dateFormatter = hourFormat;
+        } else if (deltaDay == 0) {
+            dateFormatter = hourFormat;
         }
 
         //Minecraft gray inv color C6C6C6
@@ -334,7 +360,7 @@ public class DeathsOverTimeChartScreen extends Screen {
         timeAxis.setAutoRange(true);
         timeAxis.setAutoTickUnitSelection(true);
         timeAxis.setLowerMargin(0.0);
-        timeAxis.setLocale(Locale.getDefault());
+        //timeAxis.setLocale(Locale.getDefault());
 
         double deathTickUnit = calculateTickCount( maxDeaths.intValue());
         NumberAxis deathAxis = (NumberAxis) plot.getRangeAxis();

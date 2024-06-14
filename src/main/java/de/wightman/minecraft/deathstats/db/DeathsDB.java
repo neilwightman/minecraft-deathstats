@@ -120,7 +120,7 @@ public class DeathsDB {
         final String sql = """
                     SELECT ID, datetime(START, 'localtime') AS START, datetime(END, 'localtime') AS END, NAME FROM SESSION
                     WHERE NAME = ?
-                    AND ID <= ? 
+                    AND ID <= ?
                     ORDER BY START DESC LIMIT ?
                 """;
         try (final PreparedStatement pstmt = conn.prepareStatement(sql)) {

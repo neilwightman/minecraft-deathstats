@@ -14,7 +14,7 @@ repositories {
 }
 
 base {
-    archivesName = mod_id
+    archivesName = mod_id + "-" + minecraft_version + "-neoforge"
 }
 
 // Mojang ships Java 21 to end users starting in 1.20.5, so mods should target Java 21.
@@ -91,7 +91,7 @@ jarJar.enable()
 
 // 'all' is the default classifier
 tasks.named('jarJar') {
-    archiveClassifier = mod_id + "-" + minecraft_version + "-neoforge"
+    //archiveClassifier = ''
 }
 
 // Add runtime dependencies to jar

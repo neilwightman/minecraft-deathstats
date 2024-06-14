@@ -5,22 +5,19 @@ import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.IExtensionPoint;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVStoreException;
@@ -29,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
-@Mod(DeathStats.MOD_ID)
+@Mod(value = DeathStats.MOD_ID, dist = Dist.CLIENT)
 public class DeathStats {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeathStats.class);
@@ -48,31 +45,22 @@ public class DeathStats {
     private static final String KEY_IS_VISIBLE = "is_visible";
 
 
-    public DeathStats() {
-        //Make sure the mod being absent on the other network side does not cause the client to display the server as incompatible
-        ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "ANY", (remote, isServer) -> true));
-
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> this::init);
-
-        INSTANCE = this;
-    }
-
-    private void init() {
+    public DeathStats(IEventBus modBus, ModContainer container) {
         LOGGER.info("Starting DeathStats");
 
         String home = System.getProperty("user.home");
         deathsFile = new File(home, "minecraft_deaths.dat"); // FIXED
 
-        IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
         // Register ourselves for server and other game events we are interested in
-        MinecraftForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.register(this);
         // Client side commands
-        MinecraftForge.EVENT_BUS.register(ClientCommands.class);
+        NeoForge.EVENT_BUS.register(ClientCommands.class);
         // Hud gui
-        MinecraftForge.EVENT_BUS.register(ClientSetupHandler.class);
+        modBus.register(ClientSetupHandler.class);
+        // Sounds
+        DeathSoundEvents.registerSoundEvent(modBus);
 
-        DeathSoundEvents.registerSoundEvent(eventBus);
+        INSTANCE = this;
     }
 
     public static DeathStats getInstance() {
@@ -172,13 +160,13 @@ public class DeathStats {
     }
 
     public void triggerHighScoreEvent() {
-        MinecraftForge.EVENT_BUS.post(NewHighScoreEvent.HIGH_SCORE_EVENT);
+        NeoForge.EVENT_BUS.post(NewHighScoreEvent.HIGH_SCORE_EVENT);
     }
 
     public void playHighScoreSound() {
         LOGGER.debug("playHishScoreSound {} {}", Thread.currentThread().getName(), Thread.currentThread().getId());
 
-        SoundEvent s = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(MOD_ID, "high_score"));
+        SoundEvent s = BuiltInRegistries.SOUND_EVENT.get(ResourceLocation.fromNamespaceAndPath(MOD_ID, "high_score"));
         if (s == null) {
             LOGGER.error("high_score sound is null");
             return;

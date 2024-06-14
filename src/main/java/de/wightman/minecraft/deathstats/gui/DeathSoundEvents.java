@@ -2,27 +2,26 @@ package de.wightman.minecraft.deathstats.gui;
 
 
 import de.wightman.minecraft.deathstats.DeathStats;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegisterEvent;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredRegister;
+
+import java.util.function.Supplier;
 
 public class DeathSoundEvents {
 
-    public static DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, DeathStats.MOD_ID);
+    public static DeferredRegister<SoundEvent> SOUND_EVENT = DeferredRegister.create(BuiltInRegistries.SOUND_EVENT, DeathStats.MOD_ID);
 
-    public static final RegistryObject<SoundEvent> HIGH_SCORE = registrySoundEvent("high_score");
+    public static final Supplier<SoundEvent> HIGH_SCORE = registrySoundEvent("high_score");
 
-    private static RegistryObject<SoundEvent> registrySoundEvent(String name) {
-        return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(DeathStats.MOD_ID, name)));
+    private static Supplier<SoundEvent> registrySoundEvent(String name) {
+        return SOUND_EVENT.register(name, () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(DeathStats.MOD_ID, name)));
     }
 
     public static void registerSoundEvent(IEventBus eventBus) {
-        SOUND_EVENTS.register(eventBus);
+        SOUND_EVENT.register(eventBus);
     }
 
 }

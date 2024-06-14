@@ -1,6 +1,6 @@
 package de.wightman.minecraft.deathstats.event;
 
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.bus.api.Event;
 
 /**
  * An event fired when a new high score is hit.

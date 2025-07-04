@@ -1,6 +1,7 @@
 package de.wightman.minecraft.deathstats;
 
 import de.wightman.minecraft.deathstats.event.NewHighScoreEvent;
+import de.wightman.minecraft.deathstats.gui.DeathOverlayGui;
 import de.wightman.minecraft.deathstats.gui.DeathSoundEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -23,6 +24,7 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 
 import java.io.File;
 
@@ -215,4 +217,10 @@ public class DeathStats {
             }
         }
     }
+
+//    @SubscribeEvent
+//    private void onRegisterHudHandler(final RegisterGuiLayersEvent event)
+//    {
+//        DeathOverlayGui.register(event);
+//    }
 }

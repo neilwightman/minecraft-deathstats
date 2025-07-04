@@ -5,18 +5,27 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ARGB;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.gui.GuiLayer;
 
-public class DeathOverlayGui implements LayeredDraw.Layer {
+import static de.wightman.minecraft.deathstats.DeathStats.MOD_ID;
+
+public class DeathOverlayGui implements GuiLayer {
 
     private static final DeathStats stats = DeathStats.getInstance();
 
     // COLORS
-    public static final String WHITE = "FFFFFF";
-    public static final String RED = "FF0000";
-    public static final String ORANGE = "FF4500";
-    public static final String GREEN = "32CD32";
-    public static final String YELLOW = "FFFF33";
+    public static final int WHITE  = ARGB.color(255, 255, 255, 255);
+    public static final int RED    = ARGB.color(255, 255, 0, 0);
+    public static final int ORANGE = ARGB.color(255, 255, 69, 0);
+    public static final int GREEN  = ARGB.color(255, 50, 205, 50);
+    public static final int YELLOW = ARGB.color(255, 255, 255, 51);
+
+    public static void register(final RegisterGuiLayersEvent event) {
+        event.registerAboveAll(ResourceLocation.fromNamespaceAndPath(MOD_ID, "deathstats_hud"), new DeathOverlayGui());
+    }
 
     @Override
     public void render(GuiGraphics gui, DeltaTracker tracker) {
@@ -42,10 +51,10 @@ public class DeathOverlayGui implements LayeredDraw.Layer {
 
             // Title and highscore text
             if (stats.isHighScore()) {
-                gui.drawString(font, title, width - totalWidth - 10, (height / 2) - font.lineHeight * 2, Integer.parseInt(WHITE, 16));
-                gui.drawString(font, highScore, width - totalWidth - 10, (height / 2) - font.lineHeight, Integer.parseInt(GREEN, 16));
+                gui.drawString(font, title, width - totalWidth - 10, (height / 2) - font.lineHeight * 2, WHITE);
+                gui.drawString(font, highScore, width - totalWidth - 10, (height / 2) - font.lineHeight, GREEN);
             } else {
-                gui.drawString(font, title, width - totalWidth - 10, (height / 2) - font.lineHeight, Integer.parseInt(WHITE, 16));
+                gui.drawString(font, title, width - totalWidth - 10, (height / 2) - font.lineHeight, WHITE);
             }
 
             // 50% = yellow
@@ -53,19 +62,19 @@ public class DeathOverlayGui implements LayeredDraw.Layer {
             // 90% = red
             double percent = (double) current / (double) max;
 
-            String color = WHITE;
+            int color = WHITE;
             if (stats.isHighScore()) color = GREEN;
             else if (percent >= 0.90) color = RED;
             else if (percent >= 0.75) color = ORANGE;
             else if (percent >= 0.50) color = YELLOW;
 
             // current
-            gui.drawString(font, line1Left, width - totalWidth - 10, (height / 2), Integer.parseInt(color, 16));
-            gui.drawString(font, line1Right, width - rightWidth - 10, (height / 2), Integer.parseInt(color, 16));
+            gui.drawString(font, line1Left, width - totalWidth - 10, (height / 2), color);
+            gui.drawString(font, line1Right, width - rightWidth - 10, (height / 2), color);
 
             // Max
-            gui.drawString(font, line2Left, width - totalWidth - 10, (height / 2) + font.lineHeight, Integer.parseInt(color, 16));
-            gui.drawString(font, line2Right, width - rightWidth - 10, (height / 2) + font.lineHeight, Integer.parseInt(color, 16));
+            gui.drawString(font, line2Left, width - totalWidth - 10, (height / 2) + font.lineHeight, color);
+            gui.drawString(font, line2Right, width - rightWidth - 10, (height / 2) + font.lineHeight, color);
         }
     }
 

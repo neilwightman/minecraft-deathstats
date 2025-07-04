@@ -98,7 +98,7 @@ public class DeathStats {
         } catch (MVStoreException mvStoreException) {
             LOGGER.error("Cannot open {}", deathsFile.getAbsolutePath(), mvStoreException);
             MutableComponent c = Component.literal("ERROR: Cannot open " + deathsFile.getAbsolutePath());
-            Minecraft.getInstance().player.sendSystemMessage(c);
+            Minecraft.getInstance().player.displayClientMessage(c, true);
         }
     }
 
@@ -166,7 +166,7 @@ public class DeathStats {
     public void playHighScoreSound() {
         LOGGER.debug("playHishScoreSound {} {}", Thread.currentThread().getName(), Thread.currentThread().getId());
 
-        SoundEvent s = BuiltInRegistries.SOUND_EVENT.get(ResourceLocation.fromNamespaceAndPath(MOD_ID, "high_score"));
+        SoundEvent s = BuiltInRegistries.SOUND_EVENT.getValue(ResourceLocation.fromNamespaceAndPath(MOD_ID, "high_score"));
         if (s == null) {
             LOGGER.error("high_score sound is null");
             return;

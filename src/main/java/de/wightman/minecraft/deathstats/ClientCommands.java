@@ -92,7 +92,7 @@ public final class ClientCommands {
                 §6/deathstats§f sound - §oplays high score sound§r
                 §6/deathstats§f reset - §osets max and current to 0§r
                 """);
-        source.getEntity().sendSystemMessage(m);
+        source.sendSystemMessage(m);
         return 0;
     }
 
@@ -109,31 +109,31 @@ public final class ClientCommands {
                      §4visible§f: §2%s§f
                 }
                 """.formatted(current, max, highScore, visible));
-        source.getEntity().sendSystemMessage(m);
+        source.sendSystemMessage(m);
         return 0;
     }
 
     private static int get_current(final CommandSourceStack source) {
         MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getCurrent()));
-        source.getEntity().sendSystemMessage(m);
+        source.sendSystemMessage(m);
         return 0;
     }
 
     private static int get_max(final CommandSourceStack source) {
         MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getMax()));
-        source.getEntity().sendSystemMessage(m);
+        source.sendSystemMessage(m);
         return 0;
     }
 
     private static int get_highscore(final CommandSourceStack source) {
         MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().isHighScore()));
-        source.getEntity().sendSystemMessage(m);
+        source.sendSystemMessage(m);
         return 0;
     }
 
     private static int debug(final CommandSourceStack source) {
         MutableComponent m = Component.literal(String.valueOf(DeathStats.getInstance().getDeathsFile()));
-        source.getEntity().sendSystemMessage(m);
+        source.sendSystemMessage(m);
         get_all(source);
         return 0;
     }

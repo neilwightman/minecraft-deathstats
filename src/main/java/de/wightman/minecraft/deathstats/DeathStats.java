@@ -212,8 +212,9 @@ public class DeathStats {
     @SubscribeEvent
     public void onRespawn(final ClientPlayerNetworkEvent.Clone event) {
         if (event.getPlayer() == Minecraft.getInstance().player) {
-            final LocalPlayer lp = event.getOldPlayer();
-            if (lp.getRemovalReason() == Entity.RemovalReason.KILLED) {
+            final Entity.RemovalReason reason = event.getOldPlayer().getRemovalReason();
+            // KILLED in 1.20.1 vanilla but not Haven Orbital Crashland-BETA 0.1.5
+            if ( reason == Entity.RemovalReason.DISCARDED ) {
 
                 if (map == null) return;
 
